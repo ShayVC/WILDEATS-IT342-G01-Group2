@@ -1,7 +1,11 @@
 # 🍽️ WILDEATS: Online Canteen System (IT342-G01-Group2)
 
 ## 📘 Project Overview
-**WILDEATS: Online Canteen System (WOCS)** is a digital platform designed to modernize and streamline the school canteen experience. It enables students to **pre-order meals** and monitor their **queue status** through a mobile app, while canteen staff manage orders and menus using a web dashboard. The system is powered by a **Spring Boot + MySQL backend**, ensuring fast, secure, and reliable communication between all components.
+**WILDEATS: Online Canteen System (WOCS)** is a digital platform designed to modernize and streamline the school canteen experience. 
+
+It enables students to **pre-order meals** and monitor their **queue status** through a mobile app, while canteen staff manage orders and menus using a web dashboard. 
+
+The system is powered by a **Spring Boot + MySQL backend**, ensuring fast, secure, and reliable communication between all components.
 
 ---
 
