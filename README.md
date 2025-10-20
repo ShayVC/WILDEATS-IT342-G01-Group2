@@ -1,9 +1,7 @@
 # 🍽️ WILDEATS: Online Canteen System (IT342-G01-Group2)
 
 ## 📘 Project Overview
-**WILDEATS: Online Canteen System (WOCS)** is a digital platform designed to modernize and streamline the school canteen experience.  
-It enables students to **pre-order meals** and monitor their **queue status** through a mobile app, while canteen staff manage orders and menus using a web dashboard.  
-The system is powered by a **Spring Boot + MySQL backend**, ensuring fast, secure, and reliable communication between all components.
+**WILDEATS: Online Canteen System (WOCS)** is a digital platform designed to modernize and streamline the school canteen experience. It enables students to **pre-order meals** and monitor their **queue status** through a mobile app, while canteen staff manage orders and menus using a web dashboard. The system is powered by a **Spring Boot + MySQL backend**, ensuring fast, secure, and reliable communication between all components.
 
 ---
 
@@ -56,8 +54,8 @@ http://localhost:3000
 | Name                          | Role                               | CIT-U Email                                                 | GitHub                                          |
 | ----------------------------- | ---------------------------------- | ----------------------------------------------------------- | ----------------------------------------------- |
 | **Shayne Marie B. Angus**     | Lead Developer / Project Manager   | [shayne.angus@cit.edu](mailto:shayne.angus@cit.edu)         | [@ShayVC](https://github.com/ShayVC)            |
-| **Estelle Felicity T. Carao** | Backend Developer                  | estellefelicity.carao@cit.edu                               | [@teruteriri](https://github.com/teruteriri)      |
-| **Johannah Rhey S. Alcarez**  | Frontend Developer (Web Dashboard) | johannahrheys.alcarez@cit.edu                               | *(add GitHub handle)*                           |
+| **Estelle Felicity T. Carao** | Backend Developer                  | estellefelicity.carao@cit.edu                               | [@teruteriri](https://github.com/teruteriri)    |
+| **Johannah Rhey S. Alcarez**  | Frontend Developer (Web Dashboard) | johannahrheys.alcarez@cit.edu                               | [@lovenahnah](https://github.com/lovenahnah)    |
 | **Kursten Dane M. Casas**     | Mobile Developer (Android App)     | kurstendane.casas@cit.edu                                   | [@kurstdane](https://github.com/kurstdane)      |
 | **Mr. Frederick Revilleza**   | Project Adviser                    | frederick.revillezajr@cit.edu                               | [blissfuljuan](https://github.com/blissfuljuan) |
 
