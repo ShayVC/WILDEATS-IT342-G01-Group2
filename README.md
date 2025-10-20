@@ -61,7 +61,7 @@ http://localhost:3000
 | **Estelle Felicity T. Carao** | Backend Developer                  | estellefelicity.carao@cit.edu                               | [@teruteriri](https://github.com/teruteriri)    |
 | **Johannah Rhey S. Alcarez**  | Frontend Developer (Web Dashboard) | johannahrheys.alcarez@cit.edu                               | [@lovenahnah](https://github.com/lovenahnah)    |
 | **Kursten Dane M. Casas**     | Mobile Developer (Android App)     | kurstendane.casas@cit.edu                                   | [@kurstdane](https://github.com/kurstdane)      |
-| **Mr. Frederick Revilleza**   | Project Adviser                    | frederick.revillezajr@cit.edu                               | [blissfuljuan](https://github.com/blissfuljuan) |
+| **Mr. Frederick Revilleza**   | Project Adviser                    | frederick.revillezajr@cit.edu                               | [@blissfuljuan](https://github.com/blissfuljuan)|
 
 📦 Database
 | File                       | Purpose                                      |
