@@ -19,35 +19,13 @@ The system is powered by a **Spring Boot + MySQL backend**, ensuring fast, secur
 ---
 
 ## 🏗️ Project Structure
-WILDEATS-IT342-G01-Group2/
-│
-├── backend/ # Java Spring Boot backend (APIs + database)
-│ ├── src/
-│ ├── pom.xml
-│ ├── canteendb.sql
-│ ├── create_tables.sql
-│ ├── recreate_users_table.sql
-│ └── query/
-│
-├── web_frontend/ # Web dashboard for canteen staff/admin
-│ ├── src/
-│ ├── public/
-│ ├── package.json
-│ ├── package-lock.json
-│ └── .env
-│
-├── mobile/ # Kotlin Android app for students (placeholder for now)
-│ └── README.md
-│
-├── README.md # Project documentation (this file)
-├── .gitignore # Ignore build, IDE, and environment files
-└── .gitattributes
+<img width="208" height="453" alt="image" src="https://github.com/user-attachments/assets/5c674e84-1f67-4518-858b-56db939cbde6" />
+
 
 ## 🚀 Setup & Run Instructions
 
 ### 🧩 Backend Setup (Spring Boot)
 1. Navigate to the backend directory:
-   ```bash
    cd backend
 2. Open the project in IntelliJ or Eclipse.
 3. Configure the database connection inside application.properties.
@@ -59,35 +37,29 @@ WILDEATS-IT342-G01-Group2/
 
 1. Navigate to the web dashboard folder:
 cd web_frontend
-
 2. Install dependencies:
 npm install
-
 3. Start the development server:
 npm start
-
 4. Open your browser and go to:
 http://localhost:3000
 
 📱 Mobile App Setup (Android)
 
 1. Open the mobile folder in Android Studio.
-
 2. Sync Gradle and ensure dependencies are installed.
-
 3. Update your API base URL in the ApiClient.kt file.
-
 4. Run the app on an Android device (Android 10+).
 
 👥 Team Members
 
-| Name                          | Role                               | CIT-U Email                                                 | GitHub                               |
-| ----------------------------- | ---------------------------------- | ----------------------------------------------------------- | ------------------------------------ |
-| **Shayne Marie B. Angus**     | Lead Developer / Project Manager   | [shayne.angus@cit.edu](mailto:shayne.angus@cit.edu)         | [@ShayVC](https://github.com/ShayVC) |
-| **Estelle Felicity T. Carao** | Backend Developer                  | [estelle.carao@cit.edu](mailto:estelle.carao@cit.edu)       | *(add GitHub handle)*                |
-| **Johannah Rhey S. Alcarez**  | Frontend Developer (Web Dashboard) | [johannah.alcarez@cit.edu](mailto:johannah.alcarez@cit.edu) | *(add GitHub handle)*                |
-| **Kursten Dane M. Casas**     | Mobile Developer (Android App)     | [kursten.casas@cit.edu](mailto:kursten.casas@cit.edu)       | *(add GitHub handle)*                |
-| **Mr. Frederick Revilleza**   | Project Adviser                    | —                                                           | —                                    |
+| Name                          | Role                               | CIT-U Email                                                 | GitHub                                          |
+| ----------------------------- | ---------------------------------- | ----------------------------------------------------------- | ----------------------------------------------- |
+| **Shayne Marie B. Angus**     | Lead Developer / Project Manager   | [shayne.angus@cit.edu](mailto:shayne.angus@cit.edu)         | [@ShayVC](https://github.com/ShayVC)            |
+| **Estelle Felicity T. Carao** | Backend Developer                  | estellefelicity.carao@cit.edu                               | [@teruteriri](https://github.com/teruteriri)      |
+| **Johannah Rhey S. Alcarez**  | Frontend Developer (Web Dashboard) | johannahrheys.alcarez@cit.edu                               | *(add GitHub handle)*                           |
+| **Kursten Dane M. Casas**     | Mobile Developer (Android App)     | kurstendane.casas@cit.edu                                   | [@kurstdane](https://github.com/kurstdane)      |
+| **Mr. Frederick Revilleza**   | Project Adviser                    | frederick.revillezajr@cit.edu                               | [blissfuljuan](https://github.com/blissfuljuan) |
 
 📦 Database
 | File                       | Purpose                                      |
@@ -105,22 +77,19 @@ http://localhost:3000
 | **Admin**         | Manage users, monitor orders, perform oversight                 |
 
 🧠 Future Enhancements
-Simulated Mock Wallet for cashless payments
-
-Push notifications for real-time updates
-
-Analytics dashboard for admins
-
-Database backups and uptime monitoring
-
-Cross-platform support for iOS devices
+- Simulated Mock Wallet for cashless payments
+- Push notifications for real-time updates
+- Analytics dashboard for admins
+- Database backups and uptime monitoring
+- Cross-platform support for iOS devices
 
 🌐 Deployed Link
 Local Deployment Only (undergoing)
 
 🪪 License
-This project was developed as part of the Systems Integration and Architecture 1 (IT342) course at
-Cebu Institute of Technology – University (CIT-U).
+This project was developed as part of the 
+Systems Integration and Architecture 1 (IT342) 
+course at Cebu Institute of Technology – University (CIT-U).
 
 📅 Version
 Version 1.0 — October 22, 2025
