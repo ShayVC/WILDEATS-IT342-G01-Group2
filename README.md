@@ -57,7 +57,7 @@ http://localhost:3000
 
 | Name                          | Role                               | CIT-U Email                                                 | GitHub                                          |
 | ----------------------------- | ---------------------------------- | ----------------------------------------------------------- | ----------------------------------------------- |
-| **Shayne Marie B. Angus**     | Lead Developer / Project Manager   | [shayne.angus@cit.edu](mailto:shayne.angus@cit.edu)         | [@ShayVC](https://github.com/ShayVC)            |
+| **Shayne Marie B. Angus**     | Lead Developer / Project Manager   | shaynemarie.angus@cit.edu                                   | [@ShayVC](https://github.com/ShayVC)            |
 | **Estelle Felicity T. Carao** | Backend Developer                  | estellefelicity.carao@cit.edu                               | [@teruteriri](https://github.com/teruteriri)    |
 | **Johannah Rhey S. Alcarez**  | Frontend Developer (Web Dashboard) | johannahrheys.alcarez@cit.edu                               | [@lovenahnah](https://github.com/lovenahnah)    |
 | **Kursten Dane M. Casas**     | Mobile Developer (Android App)     | kurstendane.casas@cit.edu                                   | [@kurstdane](https://github.com/kurstdane)      |
