@@ -1,0 +1,20 @@
+[
+  {
+    "customerName": "John Smith",
+    "totalPrice": 15.99,
+    "items": "Burger,Fries,Soda",
+    "status": "PREPARING"
+  },
+  {
+    "customerName": "Emma Wilson",
+    "totalPrice": 9.99,
+    "items": "Salad,Soup",
+    "status": "READY"
+  },
+  {
+    "customerName": "Michael Brown",
+    "totalPrice": 22.50,
+    "items": "Steak,Mashed Potatoes,Wine",
+    "status": "DELIVERED"
+  }
+]

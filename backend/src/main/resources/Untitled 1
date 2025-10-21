@@ -1,0 +1,14 @@
+[
+  {
+    "customerName": "Initial Data 1",
+    "totalPrice": 10.99,
+    "items": "Item1,Item2",
+    "status": "PREPARING"
+  },
+  {
+    "customerName": "Initial Data 2",
+    "totalPrice": 15.50,
+    "items": "Item3,Item4",
+    "status": "READY"
+  }
+]
