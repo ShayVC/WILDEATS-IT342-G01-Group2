@@ -161,7 +161,7 @@ const FoodItemFormPage = () => {
         
         <FormRow>
           <FormGroup>
-            <Label htmlFor="price">Price ($)</Label>
+            <Label htmlFor="price">Price (₱)</Label>
             <Input
               type="number"
               id="price"

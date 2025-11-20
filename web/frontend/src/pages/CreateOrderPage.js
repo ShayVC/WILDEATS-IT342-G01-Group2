@@ -196,7 +196,7 @@ const CreateOrderPage = () => {
                 <MenuItem onClick={() => handleAddToCart(item)}>
                   <MenuItemImage src={item.image} alt={item.name} />
                   <MenuItemName>{item.name}</MenuItemName>
-                  <MenuItemPrice>${item.price.toFixed(2)}</MenuItemPrice>
+                  <MenuItemPrice>₱{item.price.toFixed(2)}</MenuItemPrice>
                   <MenuItemCategory>{item.category}</MenuItemCategory>
                   <AddButton>
                     <FiPlus />
@@ -245,7 +245,7 @@ const CreateOrderPage = () => {
                   <CartItem key={item.id}>
                     <CartItemInfo>
                       <CartItemName>{item.name}</CartItemName>
-                      <CartItemPrice>${(item.price * item.quantity).toFixed(2)}</CartItemPrice>
+                      <CartItemPrice>₱{(item.price * item.quantity).toFixed(2)}</CartItemPrice>
                     </CartItemInfo>
                     <CartItemActionsContainer>
                       <QuantityControl>
@@ -269,7 +269,7 @@ const CreateOrderPage = () => {
           
           <TotalContainer>
             <TotalLabel>Total</TotalLabel>
-            <TotalValue>${totalPrice.toFixed(2)}</TotalValue>
+            <TotalValue>₱{totalPrice.toFixed(2)}</TotalValue>
           </TotalContainer>
           
           <SubmitButton 
