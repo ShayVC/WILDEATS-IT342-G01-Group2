@@ -51,7 +51,7 @@ const PlaceOrderPage = () => {
           const selectedItem = location.state.selectedFoodItem;
           if (selectedItem.available && selectedItem.quantity > 0) {
             setCart([{ ...selectedItem, quantity: 1 }]);
-            toast.info(`Added ${selectedItem.name} to your cart`);
+            toast.info(`Added ₱{selectedItem.name} to your cart`);
           }
         }
         
@@ -184,7 +184,7 @@ const PlaceOrderPage = () => {
                   </FoodItemDescription>
                   <FoodItemFooter>
                     <FoodItemPrice>
-                      ${foodItem.price.toFixed(2)}
+                      ₱{foodItem.price.toFixed(2)}
                     </FoodItemPrice>
                     <AddButton onClick={() => handleAddToCart(foodItem)}>
                       + Add to Cart
@@ -215,7 +215,7 @@ const PlaceOrderPage = () => {
                         {item.name}
                       </CartItemName>
                       <CartItemTotal>
-                        ${(item.price * item.quantity).toFixed(2)}
+                        ₱{(item.price * item.quantity).toFixed(2)}
                       </CartItemTotal>
                     </CartItemHeader>
                     <CartItemControls>
@@ -229,7 +229,7 @@ const PlaceOrderPage = () => {
                         +
                       </QuantityButton>
                       <ItemPrice>
-                        x ${item.price.toFixed(2)}
+                        x ₱{item.price.toFixed(2)}
                       </ItemPrice>
                     </CartItemControls>
                     <ItemDivider />
@@ -237,7 +237,7 @@ const PlaceOrderPage = () => {
                 ))}
                 
                 <OrderTotal>
-                  Total: ${calculateTotal().toFixed(2)}
+                  Total: ₱{calculateTotal().toFixed(2)}
                 </OrderTotal>
               </>
             )}

@@ -309,7 +309,7 @@ const OrderDetailsPage = () => {
                   onChange={handleInputChange}
                 />
               ) : (
-                <InfoValue>${order.totalPrice?.toFixed(2)}</InfoValue>
+                <InfoValue>₱{order.totalPrice?.toFixed(2)}</InfoValue>
               )}
             </InfoItem>
             

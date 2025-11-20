@@ -169,7 +169,7 @@ const ShopDetailsPage = () => {
                 <MenuItem key={item.id}>
                   <MenuItemName>{item.name}</MenuItemName>
                   <MenuItemDescription>{item.description}</MenuItemDescription>
-                  <MenuItemPrice>${item.price.toFixed(2)}</MenuItemPrice>
+                  <MenuItemPrice>₱{item.price.toFixed(2)}</MenuItemPrice>
                 </MenuItem>
               ))}
             </MenuItemsGrid>
@@ -188,7 +188,7 @@ const ShopDetailsPage = () => {
                 </FoodItemDescription>
                 
                 <FoodItemDetails>
-                  <FoodItemPrice>${foodItem.price.toFixed(2)}</FoodItemPrice>
+                  <FoodItemPrice>₱{foodItem.price.toFixed(2)}</FoodItemPrice>
                   <FoodItemQuantity>In stock: {foodItem.quantity}</FoodItemQuantity>
                   <FoodItemAvailability available={foodItem.available}>
                     {foodItem.available ? 'Available' : 'Unavailable'}

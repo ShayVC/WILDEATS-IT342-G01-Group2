@@ -155,7 +155,7 @@ const MyOrdersPage = () => {
                 
                 <OrderTotal>
                   <TotalLabel>Total:</TotalLabel>
-                  <TotalAmount>${order.total_price ? order.total_price.toFixed(2) : '0.00'}</TotalAmount>
+                  <TotalAmount>₱{order.total_price ? order.total_price.toFixed(2) : '0.00'}</TotalAmount>
                 </OrderTotal>
               </OrderDetails>
               

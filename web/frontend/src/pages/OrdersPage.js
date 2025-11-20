@@ -190,7 +190,7 @@ const OrdersPage = () => {
                     </OrderInfoItem>
                     <OrderInfoItem>
                       <OrderInfoLabel>Total:</OrderInfoLabel>
-                      <OrderInfoValue>${order.totalPrice.toFixed(2)}</OrderInfoValue>
+                      <OrderInfoValue>₱{order.totalPrice.toFixed(2)}</OrderInfoValue>
                     </OrderInfoItem>
                     <OrderInfoItem>
                       <OrderInfoLabel>Items:</OrderInfoLabel>

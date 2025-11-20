@@ -14,7 +14,7 @@ import caesarSaladImg from '../assets/images/Caesar Salad.jpg';
 import chocolateCakeImg from '../assets/images/Chocolate Cake.jpg';
 
 const HomePage = () => {
-  const { isAuthenticated, currentUser, isSeller, isCustomer } = useAuth();
+  const { isAuthenticated, currentUser, isSeller, isCustomer, isAdmin } = useAuth();
   
   return (
     <Container>
@@ -135,7 +135,7 @@ const HomePage = () => {
                 <FeatureDescription>Check the status of your current and past orders</FeatureDescription>
               </FeatureCard>
               
-              <FeatureCard to="/create-order">
+              <FeatureCard to="/shops">
                 <FeatureIcon>
                   <FiPlusCircle />
                 </FeatureIcon>
@@ -157,46 +157,49 @@ const HomePage = () => {
             <CtaDescription>
               Explore our menu and place your order now for a delightful dining experience.
             </CtaDescription>
-            <CtaButton to="/create-order">
+            <CtaButton to="/shops">
               Place an Order
             </CtaButton>
           </CtaText>
         </CtaContainer>
       </CallToActionSection>
 
-      <ManagementSection>
-        <SectionTitle>Management Features</SectionTitle>
-        
-        <ManagementGrid>
-          <ManagementCard
-            whileHover={{ y: -5 }}
-            transition={{ type: "spring", stiffness: 300 }}
-            to="/shops"
-          >
-            <ManagementIcon className="shop">
-              <FiShoppingCart />
-            </ManagementIcon>
-            <ManagementTitle>Shop Management</ManagementTitle>
-            <ManagementDescription>
-              Add, edit, and manage shops in the online canteen system.
-            </ManagementDescription>
-          </ManagementCard>
-          
-          <ManagementCard
-            whileHover={{ y: -5 }}
-            transition={{ type: "spring", stiffness: 300 }}
-            to="/users"
-          >
-            <ManagementIcon className="user">
-              <FiUsers />
-            </ManagementIcon>
-            <ManagementTitle>User Management</ManagementTitle>
-            <ManagementDescription>
-              Manage user accounts, permissions, and profiles.
-            </ManagementDescription>
-          </ManagementCard>
-        </ManagementGrid>
-      </ManagementSection>
+      // NEW Block:
+      {isAdmin && (
+        <ManagementSection>
+          <SectionTitle>Management Features</SectionTitle>
+          
+          <ManagementGrid>
+            <ManagementCard
+              whileHover={{ y: -5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              to="/shops"
+            >
+              <ManagementIcon className="shop">
+                <FiShoppingCart />
+              </ManagementIcon>
+              <ManagementTitle>Shop Management</ManagementTitle>
+              <ManagementDescription>
+                Add, edit, and manage shops in the online canteen system.
+              </ManagementDescription>
+            </ManagementCard>
+            
+            <ManagementCard
+              whileHover={{ y: -5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              to="/users"
+            >
+              <ManagementIcon className="user">
+                <FiUsers />
+              </ManagementIcon>
+              <ManagementTitle>User Management</ManagementTitle>
+              <ManagementDescription>
+                Manage user accounts, permissions, and profiles.
+              </ManagementDescription>
+            </ManagementCard>
+          </ManagementGrid>
+        </ManagementSection>
+      )}
     </Container>
   );
 };
