@@ -3,6 +3,9 @@ package com.wildeats.onlinecanteen.controller;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -74,13 +77,14 @@ public class UserController {
 
     /**
      * Get current user's profile
-     * 
-     * @param userId The ID of the current user (from request param)
-     * @return The user's profile
      */
     @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(@RequestParam Long userId) {
-        logger.info("Fetching profile for user with ID: {}", userId);
+    public ResponseEntity<?> getProfile() {
+        logger.info("Fetching profile for authenticated user");
+
+        // Get userId from JWT token
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = (Long) authentication.getPrincipal();
 
         UserEntity user = userService.getUserById(userId);
         if (user == null) {
@@ -100,15 +104,13 @@ public class UserController {
 
     /**
      * Update current user's profile (name and email only)
-     * 
-     * @param userId  The ID of the current user
-     * @param request The update request containing new name and email
-     * @return The updated user profile
      */
     @PutMapping("/profile")
-    public ResponseEntity<?> updateProfile(
-            @RequestParam Long userId,
-            @RequestBody UpdateProfileRequest request) {
+    public ResponseEntity<?> updateProfile(@RequestBody UpdateProfileRequest request) {
+        // Get userId from JWT token
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = (Long) authentication.getPrincipal();
+
         logger.info("Updating profile for user with ID: {}", userId);
 
         // Validate input

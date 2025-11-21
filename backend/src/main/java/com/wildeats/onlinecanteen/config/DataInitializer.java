@@ -12,6 +12,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import java.util.Date;
 
 @Configuration
@@ -19,12 +21,15 @@ public class DataInitializer {
 
     @Autowired
     private UserRepository userRepository;
-    
+
     @Autowired
     private ShopRepository shopRepository;
-    
+
     @Autowired
     private FoodItemRepository foodItemRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Bean
     public CommandLineRunner initData() {
@@ -35,7 +40,7 @@ public class DataInitializer {
                 UserEntity seller1 = new UserEntity();
                 seller1.setName("Coffee Shop Owner");
                 seller1.setEmail("shop.coffee@example.com");
-                seller1.setPassword("password123");
+                seller1.setPassword(passwordEncoder.encode("password123"));
                 seller1.setRole(UserEntity.Role.SELLER);
                 seller1.setCreatedAt(new Date());
                 seller1.setLastLogin(new Date());
@@ -44,17 +49,17 @@ public class DataInitializer {
                 UserEntity seller2 = new UserEntity();
                 seller2.setName("Sandwich Shop Owner");
                 seller2.setEmail("shop.sandwich@example.com");
-                seller2.setPassword("password456");
+                seller2.setPassword(passwordEncoder.encode("password456"));
                 seller2.setRole(UserEntity.Role.SELLER);
                 seller2.setCreatedAt(new Date());
                 seller2.setLastLogin(new Date());
                 userRepository.save(seller2);
-                
+
                 // Create sample users - Customers
                 UserEntity customer1 = new UserEntity();
                 customer1.setName("John Doe");
                 customer1.setEmail("john.doe@example.com");
-                customer1.setPassword("password123");
+                customer1.setPassword(passwordEncoder.encode("password123"));
                 customer1.setRole(UserEntity.Role.CUSTOMER);
                 customer1.setCreatedAt(new Date());
                 customer1.setLastLogin(new Date());
@@ -63,7 +68,7 @@ public class DataInitializer {
                 UserEntity customer2 = new UserEntity();
                 customer2.setName("Jane Smith");
                 customer2.setEmail("jane.smith@example.com");
-                customer2.setPassword("password456");
+                customer2.setPassword(passwordEncoder.encode("password456"));
                 customer2.setRole(UserEntity.Role.CUSTOMER);
                 customer2.setCreatedAt(new Date());
                 customer2.setLastLogin(new Date());
@@ -95,7 +100,7 @@ public class DataInitializer {
                 shop2.setUpdatedAt(new Date());
                 shop2.setActive(true);
                 shopRepository.save(shop2);
-                
+
                 // Create sample food items for Coffee Haven
                 FoodItemEntity coffee1 = new FoodItemEntity();
                 coffee1.setName("Espresso");
@@ -107,7 +112,7 @@ public class DataInitializer {
                 coffee1.setCreatedAt(new Date());
                 coffee1.setUpdatedAt(new Date());
                 foodItemRepository.save(coffee1);
-                
+
                 FoodItemEntity coffee2 = new FoodItemEntity();
                 coffee2.setName("Cappuccino");
                 coffee2.setDescription("Espresso with steamed milk and foam");
@@ -118,7 +123,7 @@ public class DataInitializer {
                 coffee2.setCreatedAt(new Date());
                 coffee2.setUpdatedAt(new Date());
                 foodItemRepository.save(coffee2);
-                
+
                 FoodItemEntity pastry1 = new FoodItemEntity();
                 pastry1.setName("Croissant");
                 pastry1.setDescription("Buttery, flaky pastry");
@@ -129,7 +134,7 @@ public class DataInitializer {
                 pastry1.setCreatedAt(new Date());
                 pastry1.setUpdatedAt(new Date());
                 foodItemRepository.save(pastry1);
-                
+
                 // Create sample food items for Sandwich Corner
                 FoodItemEntity sandwich1 = new FoodItemEntity();
                 sandwich1.setName("Turkey Club");
@@ -141,7 +146,7 @@ public class DataInitializer {
                 sandwich1.setCreatedAt(new Date());
                 sandwich1.setUpdatedAt(new Date());
                 foodItemRepository.save(sandwich1);
-                
+
                 FoodItemEntity sandwich2 = new FoodItemEntity();
                 sandwich2.setName("Veggie Delight");
                 sandwich2.setDescription("Cucumber, avocado, lettuce, tomato, and hummus on whole grain bread");
@@ -152,7 +157,7 @@ public class DataInitializer {
                 sandwich2.setCreatedAt(new Date());
                 sandwich2.setUpdatedAt(new Date());
                 foodItemRepository.save(sandwich2);
-                
+
                 FoodItemEntity side1 = new FoodItemEntity();
                 side1.setName("Potato Chips");
                 side1.setDescription("Crispy, salted potato chips");

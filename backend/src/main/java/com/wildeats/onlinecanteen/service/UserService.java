@@ -3,6 +3,8 @@ package com.wildeats.onlinecanteen.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepo;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     /**
      * Get all users from the database
@@ -145,16 +150,14 @@ public class UserService {
             throw new IllegalArgumentException("User not found");
         }
 
-        // Verify current password
-        // NOTE: This will need to be updated when we implement BCrypt password hashing
-        if (!user.getPassword().equals(currentPassword)) {
+        // Verify current password using BCrypt
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             logger.warn("Incorrect current password provided for user with ID: {}", userId);
             return false;
         }
 
-        // Update password
-        // NOTE: This should hash the password when BCrypt is implemented
-        user.setPassword(newPassword);
+        // Hash and update password
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepo.save(user);
 
         logger.info("Password changed successfully for user with ID: {}", userId);
@@ -179,9 +182,8 @@ public class UserService {
             throw new IllegalArgumentException("User not found");
         }
 
-        // Verify password
-        // NOTE: This will need to be updated when we implement BCrypt password hashing
-        if (!user.getPassword().equals(password)) {
+        // Verify password using BCrypt
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             logger.warn("Incorrect password provided for account deletion, user ID: {}", userId);
             return false;
         }
