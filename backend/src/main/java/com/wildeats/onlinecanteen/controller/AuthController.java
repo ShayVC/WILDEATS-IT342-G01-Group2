@@ -3,10 +3,12 @@ package com.wildeats.onlinecanteen.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import com.wildeats.onlinecanteen.entity.UserEntity;
 import com.wildeats.onlinecanteen.entity.UserEntity.Role;
+import com.wildeats.onlinecanteen.security.JwtUtil;
 import com.wildeats.onlinecanteen.service.UserService;
 import com.wildeats.onlinecanteen.dto.LoginRequest;
 import com.wildeats.onlinecanteen.dto.RegisterRequest;
@@ -14,6 +16,7 @@ import com.wildeats.onlinecanteen.dto.AuthResponse;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -22,6 +25,12 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
@@ -33,8 +42,8 @@ public class AuthController {
                         .body(Map.of("message", "Invalid email or password"));
             }
 
-            // Simple password check (in a real app, you'd use password hashing)
-            if (!user.getPassword().equals(loginRequest.getPassword())) {
+            // Check password using BCrypt
+            if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("message", "Invalid email or password"));
             }
@@ -43,12 +52,17 @@ public class AuthController {
             user.setLastLogin(new Date());
             userService.updateUser(user);
 
-            // Create response with user details (excluding password)
-            AuthResponse response = new AuthResponse();
-            response.setId(user.getId());
-            response.setName(user.getName());
-            response.setEmail(user.getEmail());
-            response.setRole(user.getRole().toString());
+            // Generate JWT token
+            String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().toString());
+
+            // Create response with user details and token
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("user", new AuthResponse(
+                    user.getId(),
+                    user.getName(),
+                    user.getEmail(),
+                    user.getRole().toString()));
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -70,6 +84,12 @@ public class AuthController {
                         .body(Map.of("message", "Email already in use"));
             }
 
+            // Validate password strength
+            if (registerRequest.getPassword().length() < 6) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Password must be at least 6 characters long"));
+            }
+
             // Determine role based on email (starts with "shop.")
             Role role = registerRequest.getEmail().startsWith("shop.")
                     ? Role.SELLER
@@ -77,11 +97,11 @@ public class AuthController {
 
             System.out.println("Creating new user with role: " + role);
 
-            // Create new user
+            // Create new user with hashed password
             UserEntity newUser = new UserEntity(
                     registerRequest.getName(),
                     registerRequest.getEmail(),
-                    registerRequest.getPassword(),
+                    passwordEncoder.encode(registerRequest.getPassword()), // Hash password
                     role);
 
             // Set additional fields
@@ -92,12 +112,18 @@ public class AuthController {
             UserEntity savedUser = userService.createUser(newUser);
             System.out.println("User saved to database with ID: " + savedUser.getId());
 
-            // Create response with user details (excluding password)
-            AuthResponse response = new AuthResponse();
-            response.setId(savedUser.getId());
-            response.setName(savedUser.getName());
-            response.setEmail(savedUser.getEmail());
-            response.setRole(savedUser.getRole().toString());
+            // Generate JWT token
+            String token = jwtUtil.generateToken(savedUser.getId(), savedUser.getEmail(),
+                    savedUser.getRole().toString());
+
+            // Create response with user details and token
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("user", new AuthResponse(
+                    savedUser.getId(),
+                    savedUser.getName(),
+                    savedUser.getEmail(),
+                    savedUser.getRole().toString()));
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
@@ -110,8 +136,14 @@ public class AuthController {
 
     @GetMapping("/check")
     public ResponseEntity<?> checkAuthStatus() {
-        // This endpoint would normally validate a JWT token
-        // For now, we'll just return a success message
+        // This endpoint validates the JWT token via the filter
         return ResponseEntity.ok(Map.of("message", "Authenticated"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        // With JWT, logout is handled client-side by removing the token
+        // Server-side logout would require token blacklisting (advanced feature)
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 }
