@@ -3,6 +3,8 @@ package com.wildeats.onlinecanteen.entity;
 import jakarta.persistence.*;
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "shop")
 public class ShopEntity {
@@ -37,6 +39,7 @@ public class ShopEntity {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", nullable = false)
+    @JsonIgnoreProperties({ "roles", "password" })
     private UserEntity owner;
 
     @Column(name = "created_at")

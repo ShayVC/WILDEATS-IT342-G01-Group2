@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "role")
 public class RoleEntity {
@@ -17,6 +19,7 @@ public class RoleEntity {
     private String roleName;
 
     @ManyToMany(mappedBy = "roles")
+    @JsonIgnoreProperties("roles")
     private Set<UserEntity> users = new HashSet<>();
 
     public RoleEntity() {

@@ -5,6 +5,8 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "users")
 public class UserEntity {
@@ -36,6 +38,7 @@ public class UserEntity {
     // Many-to-Many relationship with Role
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+    @JsonIgnoreProperties("users")
     private Set<RoleEntity> roles = new HashSet<>();
 
     public UserEntity() {
