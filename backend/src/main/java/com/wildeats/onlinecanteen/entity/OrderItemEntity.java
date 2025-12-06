@@ -1,6 +1,7 @@
 package com.wildeats.onlinecanteen.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "order_item")
@@ -23,17 +24,17 @@ public class OrderItemEntity {
     private Integer quantity;
 
     @Column(name = "price_at_purchase", nullable = false, precision = 10, scale = 2)
-    private Double priceAtPurchase;
+    private BigDecimal priceAtPurchase;
 
     public OrderItemEntity() {
     }
 
-    // Helper method to calculate subtotal
-    public Double getSubtotal() {
+    // Helper method to calculate subtotal - NOW RETURNS BigDecimal
+    public BigDecimal getSubtotal() {
         if (priceAtPurchase != null && quantity != null) {
-            return priceAtPurchase * quantity;
+            return priceAtPurchase.multiply(BigDecimal.valueOf(quantity));
         }
-        return 0.0;
+        return BigDecimal.ZERO;
     }
 
     // Getters and Setters
@@ -82,20 +83,20 @@ public class OrderItemEntity {
         this.quantity = quantity;
     }
 
-    public Double getPriceAtPurchase() {
+    public BigDecimal getPriceAtPurchase() {
         return priceAtPurchase;
     }
 
-    public void setPriceAtPurchase(Double priceAtPurchase) {
+    public void setPriceAtPurchase(BigDecimal priceAtPurchase) {
         this.priceAtPurchase = priceAtPurchase;
     }
 
     // Backward compatibility
-    public Double getPrice() {
+    public BigDecimal getPrice() {
         return priceAtPurchase;
     }
 
-    public void setPrice(Double price) {
+    public void setPrice(BigDecimal price) {
         this.priceAtPurchase = price;
     }
 }

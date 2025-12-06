@@ -54,17 +54,36 @@ public class SecurityConfig {
                         // PUBLIC ENDPOINTS (No Authentication Required)
                         // ============================================
 
-                        // Auth endpoints
-                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/logout").permitAll()
+                        // Auth endpoints - public
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/logout",
+                                "/api/auth/verify-token",
+                                "/api/auth/refresh-token")
+                        .permitAll()
 
-                        // Test endpoints
+                        // Test endpoints - public
                         .requestMatchers("/api/test", "/api/canteen/test").permitAll()
 
                         // Shop endpoints - public read access
-                        .requestMatchers("GET", "/api/shop", "/api/shop/*").permitAll()
+                        .requestMatchers("GET",
+                                "/api/shops",
+                                "/api/shops/*",
+                                "/api/shops/status/*")
+                        .permitAll()
 
-                        // Food item endpoints - public read access
-                        .requestMatchers("GET", "/api/food/shop/*", "/api/food/*").permitAll()
+                        // Menu item endpoints - public read access
+                        .requestMatchers("GET",
+                                "/api/menu-items/shop/*",
+                                "/api/menu-items/shop/*/search",
+                                "/api/menu-items/shop/*/price",
+                                "/api/menu-items/shop/*/count",
+                                "/api/menu-items/*")
+                        .permitAll()
+
+                        // User profile viewing - public (limited info)
+                        .requestMatchers("GET", "/api/users/*").permitAll()
 
                         // ============================================
                         // AUTHENTICATED ENDPOINTS (Require JWT Token)
@@ -73,36 +92,54 @@ public class SecurityConfig {
                         // Auth check endpoint
                         .requestMatchers("/api/auth/check").authenticated()
 
-                        // User profile endpoints
-                        .requestMatchers("/api/users/profile", "/api/users/profile/**").authenticated()
+                        // User profile management (own profile only)
+                        .requestMatchers(
+                                "/api/users/profile",
+                                "/api/users/profile/password")
+                        .authenticated()
+                        .requestMatchers("PUT", "/api/users/profile").authenticated()
+                        .requestMatchers("DELETE", "/api/users/profile").authenticated()
 
-                        // Shop management (SELLER only, but checked in controller)
-                        .requestMatchers("POST", "/api/shop").authenticated()
-                        .requestMatchers("PUT", "/api/shop/*").authenticated()
-                        .requestMatchers("DELETE", "/api/shop/*").authenticated()
-                        .requestMatchers("/api/shop/my-shops").authenticated()
+                        // Shop management (SELLER role checked in controller)
+                        .requestMatchers("POST", "/api/shops").authenticated()
+                        .requestMatchers("PUT",
+                                "/api/shops/*",
+                                "/api/shops/*/toggle-status")
+                        .authenticated()
+                        .requestMatchers("DELETE", "/api/shops/*").authenticated()
+                        .requestMatchers("/api/shops/my-shops").authenticated()
 
-                        // Food item management (SELLER only, but checked in controller)
-                        .requestMatchers("POST", "/api/food").authenticated()
-                        .requestMatchers("PUT", "/api/food/*", "/api/food/*/quantity").authenticated()
-                        .requestMatchers("DELETE", "/api/food/*").authenticated()
+                        // Menu item management (SELLER role checked in controller)
+                        .requestMatchers("POST", "/api/menu-items").authenticated()
+                        .requestMatchers("PUT",
+                                "/api/menu-items/*",
+                                "/api/menu-items/*/availability")
+                        .authenticated()
+                        .requestMatchers("DELETE", "/api/menu-items/*").authenticated()
 
-                        // Order endpoints (all require authentication)
+                        // Order endpoints (role checked in controller)
                         .requestMatchers("/api/orders/**").authenticated()
 
-                        // Canteen order endpoints (if still in use)
-                        .requestMatchers("/api/canteen/**").authenticated()
-
                         // ============================================
-                        // ADMIN ENDPOINTS (Temporarily blocked)
+                        // ADMIN ENDPOINTS (Secured with @PreAuthorize)
                         // ============================================
-                        // These should be refactored to use @PreAuthorize("hasRole('ADMIN')")
+                        // These are protected by @PreAuthorize("hasRole('ADMIN')") annotations
 
-                        .requestMatchers("/api/users/getAllUsers").denyAll() // Insecure - block for now
-                        .requestMatchers("POST", "/api/users/createUser").denyAll() // Use /register instead
-                        .requestMatchers("GET", "/api/users/*").denyAll() // Insecure - should use /profile
-                        .requestMatchers("PUT", "/api/users/*").denyAll() // Insecure - should use /profile
-                        .requestMatchers("DELETE", "/api/users/*").denyAll() // Insecure - should use /profile
+                        .requestMatchers(
+                                "/api/users",
+                                "/api/users/customers",
+                                "/api/users/sellers")
+                        .authenticated()
+                        .requestMatchers("PUT", "/api/users/*/roles").authenticated()
+                        .requestMatchers("DELETE", "/api/users/*/roles/*").authenticated()
+                        .requestMatchers("POST", "/api/users/*/roles").authenticated()
+
+                        .requestMatchers(
+                                "/api/shops/admin/all",
+                                "/api/shops/*/approve",
+                                "/api/shops/*/suspend",
+                                "/api/shops/*/close")
+                        .authenticated()
 
                         // All other requests require authentication
                         .anyRequest().authenticated())
@@ -119,7 +156,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://127.0.0.1:3000"));
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:8080",
+                "http://127.0.0.1:8080"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));

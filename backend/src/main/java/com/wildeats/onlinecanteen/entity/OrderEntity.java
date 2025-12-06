@@ -1,6 +1,7 @@
 package com.wildeats.onlinecanteen.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -31,7 +32,7 @@ public class OrderEntity {
     private ShopEntity shop;
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private Double totalAmount;
+    private BigDecimal totalAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -71,8 +72,8 @@ public class OrderEntity {
 
     public void calculateTotalAmount() {
         this.totalAmount = orderItems.stream()
-                .mapToDouble(OrderItemEntity::getSubtotal)
-                .sum();
+                .map(OrderItemEntity::getSubtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     public void cancel(String reason) {
@@ -106,11 +107,11 @@ public class OrderEntity {
         this.shop = shop;
     }
 
-    public Double getTotalAmount() {
+    public BigDecimal getTotalAmount() {
         return totalAmount;
     }
 
-    public void setTotalAmount(Double totalAmount) {
+    public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
     }
 

@@ -1,6 +1,7 @@
 package com.wildeats.onlinecanteen.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "menu_item")
@@ -25,7 +26,7 @@ public class MenuItemEntity {
     private String itemImageURL;
 
     @Column(nullable = false, precision = 10, scale = 2)
-    private Double price;
+    private BigDecimal price;
 
     @Column(name = "is_available", nullable = false)
     private Boolean isAvailable = true;
@@ -92,11 +93,11 @@ public class MenuItemEntity {
         this.itemImageURL = itemImageURL;
     }
 
-    public Double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
