@@ -1,15 +1,18 @@
 package com.wildeats.onlinecanteen.service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.wildeats.onlinecanteen.entity.UserEntity;
+import com.wildeats.onlinecanteen.entity.RoleEntity;
 import com.wildeats.onlinecanteen.repository.UserRepository;
+import com.wildeats.onlinecanteen.repository.RoleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +22,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepo;
+
+    @Autowired
+    private RoleRepository roleRepo;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -53,17 +59,99 @@ public class UserService {
      */
     public UserEntity findByEmail(String email) {
         logger.info("Finding user by email: {}", email);
-        return userRepo.findByEmail(email);
+        Optional<UserEntity> user = userRepo.findByEmail(email);
+        return user.orElse(null);
     }
 
     /**
-     * Create a new user
+     * Check if an email already exists
+     * 
+     * @param email The email to check
+     * @return true if email exists, false otherwise
+     */
+    public boolean emailExists(String email) {
+        return userRepo.existsByEmail(email);
+    }
+
+    /**
+     * Create a new user with roles
      * 
      * @param user The user entity to create
      * @return The created user with generated ID
      */
+    @Transactional
     public UserEntity createUser(UserEntity user) {
         logger.info("Creating new user with email: {}", user.getEmail());
+
+        // Set creation date if not set
+        if (user.getCreatedAt() == null) {
+            user.setCreatedAt(new Date());
+        }
+
+        // If no roles are set, assign default CUSTOMER role
+        if (user.getRoles().isEmpty()) {
+            Optional<RoleEntity> customerRole = roleRepo.findByRoleName("CUSTOMER");
+            if (customerRole.isPresent()) {
+                user.addRole(customerRole.get());
+            } else {
+                logger.warn("CUSTOMER role not found in database");
+            }
+        }
+
+        return userRepo.save(user);
+    }
+
+    /**
+     * Add a role to a user
+     * 
+     * @param userId   The ID of the user
+     * @param roleName The name of the role to add
+     * @return The updated user
+     */
+    @Transactional
+    public UserEntity addRoleToUser(Long userId, String roleName) {
+        logger.info("Adding role {} to user with ID: {}", roleName, userId);
+
+        UserEntity user = getUserById(userId);
+        if (user == null) {
+            logger.error("User with ID {} not found", userId);
+            throw new IllegalArgumentException("User not found");
+        }
+
+        Optional<RoleEntity> role = roleRepo.findByRoleName(roleName);
+        if (!role.isPresent()) {
+            logger.error("Role {} not found", roleName);
+            throw new IllegalArgumentException("Role not found");
+        }
+
+        user.addRole(role.get());
+        return userRepo.save(user);
+    }
+
+    /**
+     * Remove a role from a user
+     * 
+     * @param userId   The ID of the user
+     * @param roleName The name of the role to remove
+     * @return The updated user
+     */
+    @Transactional
+    public UserEntity removeRoleFromUser(Long userId, String roleName) {
+        logger.info("Removing role {} from user with ID: {}", roleName, userId);
+
+        UserEntity user = getUserById(userId);
+        if (user == null) {
+            logger.error("User with ID {} not found", userId);
+            throw new IllegalArgumentException("User not found");
+        }
+
+        Optional<RoleEntity> role = roleRepo.findByRoleName(roleName);
+        if (!role.isPresent()) {
+            logger.error("Role {} not found", roleName);
+            throw new IllegalArgumentException("Role not found");
+        }
+
+        user.removeRole(role.get());
         return userRepo.save(user);
     }
 
@@ -74,7 +162,7 @@ public class UserService {
      * @return The updated user
      */
     public UserEntity updateUser(UserEntity user) {
-        logger.info("Updating user with ID: {}", user.getId());
+        logger.info("Updating user with ID: {}", user.getUserId());
         return userRepo.save(user);
     }
 
@@ -88,11 +176,20 @@ public class UserService {
     public UserEntity updateUser(Long id, UserEntity updatedUser) {
         logger.info("Updating user with ID: {}", id);
         return userRepo.findById(id).map(user -> {
-            user.setName(updatedUser.getName());
-            user.setEmail(updatedUser.getEmail());
-            user.setPassword(updatedUser.getPassword());
-            if (updatedUser.getRole() != null) {
-                user.setRole(updatedUser.getRole());
+            if (updatedUser.getFirstName() != null) {
+                user.setFirstName(updatedUser.getFirstName());
+            }
+            if (updatedUser.getLastName() != null) {
+                user.setLastName(updatedUser.getLastName());
+            }
+            if (updatedUser.getEmail() != null) {
+                user.setEmail(updatedUser.getEmail());
+            }
+            if (updatedUser.getPassword() != null) {
+                user.setPassword(updatedUser.getPassword());
+            }
+            if (updatedUser.getAvatarURL() != null) {
+                user.setAvatarURL(updatedUser.getAvatarURL());
             }
             return userRepo.save(user);
         }).orElse(null);
@@ -101,13 +198,14 @@ public class UserService {
     /**
      * Update user profile (name and email only)
      * 
-     * @param userId The ID of the user to update
-     * @param name   The new name
-     * @param email  The new email
+     * @param userId    The ID of the user to update
+     * @param firstName The new first name
+     * @param lastName  The new last name
+     * @param email     The new email
      * @return The updated user
      * @throws IllegalArgumentException if email is already in use by another user
      */
-    public UserEntity updateProfile(Long userId, String name, String email) {
+    public UserEntity updateProfile(Long userId, String firstName, String lastName, String email) {
         logger.info("Updating profile for user with ID: {}", userId);
 
         UserEntity user = getUserById(userId);
@@ -119,13 +217,14 @@ public class UserService {
         // Check if email is being changed and if it's already in use
         if (!user.getEmail().equals(email)) {
             UserEntity existingUser = findByEmail(email);
-            if (existingUser != null && !existingUser.getId().equals(userId)) {
+            if (existingUser != null && !existingUser.getUserId().equals(userId)) {
                 logger.error("Email {} is already in use by another user", email);
                 throw new IllegalArgumentException("Email is already in use");
             }
         }
 
-        user.setName(name);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
         user.setEmail(email);
 
         return userRepo.save(user);
@@ -219,13 +318,30 @@ public class UserService {
         logger.info("Authenticating user with email: {}", email);
         UserEntity user = findByEmail(email);
 
-        if (user != null && user.getPassword().equals(password)) {
-            // Update last login time
-            user.setLastLogin(new java.util.Date());
-            updateUser(user);
+        if (user != null && passwordEncoder.matches(password, user.getPassword())) {
             return user;
         }
 
         return null;
+    }
+
+    /**
+     * Get all customers
+     * 
+     * @return List of users with CUSTOMER role
+     */
+    public List<UserEntity> getAllCustomers() {
+        logger.info("Fetching all customers");
+        return userRepo.findAllCustomers();
+    }
+
+    /**
+     * Get all sellers
+     * 
+     * @return List of users with SELLER role
+     */
+    public List<UserEntity> getAllSellers() {
+        logger.info("Fetching all sellers");
+        return userRepo.findAllSellers();
     }
 }
