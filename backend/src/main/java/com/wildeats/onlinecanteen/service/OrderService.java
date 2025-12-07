@@ -1,12 +1,17 @@
 package com.wildeats.onlinecanteen.service;
 
+import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.wildeats.onlinecanteen.entity.OrderEntity;
@@ -38,11 +43,45 @@ public class OrderService {
     @Autowired
     private UserService userService;
 
-    /**
-     * Get all orders
-     * 
-     * @return List of all orders
-     */
+    private final ConcurrentHashMap<Long, Lock> shopLocks = new ConcurrentHashMap<>();
+
+    private Lock getLockForShop(Long shopId) {
+        return shopLocks.computeIfAbsent(shopId, k -> new ReentrantLock());
+    }
+
+    private Integer generateQueueNumber(Long shopId) {
+        Lock lock = getLockForShop(shopId);
+        lock.lock(); // Block other threads trying to generate queue numbers for this shop
+
+        try {
+            // Get start and end of today
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            Date startOfDay = cal.getTime();
+
+            cal.set(Calendar.HOUR_OF_DAY, 23);
+            cal.set(Calendar.MINUTE, 59);
+            cal.set(Calendar.SECOND, 59);
+            cal.set(Calendar.MILLISECOND, 999);
+            Date endOfDay = cal.getTime();
+
+            // Get max queue number for today (inside the lock, so it's safe)
+            Integer maxQueueNumber = orderRepo.findMaxQueueNumberForShopAndDate(shopId, startOfDay, endOfDay);
+
+            // If no orders today, start from 1
+            int nextQueueNumber = (maxQueueNumber == null) ? 1 : maxQueueNumber + 1;
+
+            logger.info("Generated queue number {} for shop {} (thread-safe)", nextQueueNumber, shopId);
+            return nextQueueNumber;
+
+        } finally {
+            lock.unlock(); // Always release the lock, even if an exception occurs
+        }
+    }
+
     public List<OrderEntity> getAllOrders() {
         logger.info("Fetching all orders");
         return orderRepo.findAll();
@@ -118,35 +157,18 @@ public class OrderService {
     }
 
     /**
-     * Generate the next queue number for a shop
+     * Create a new order with SERIALIZABLE transaction isolation
      * 
-     * @param shopId The ID of the shop
-     * @return The next queue number
-     */
-    private Integer generateQueueNumber(Long shopId) {
-        // Get start and end of today
-        Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        Date startOfDay = cal.getTime();
-
-        cal.set(Calendar.HOUR_OF_DAY, 23);
-        cal.set(Calendar.MINUTE, 59);
-        cal.set(Calendar.SECOND, 59);
-        cal.set(Calendar.MILLISECOND, 999);
-        Date endOfDay = cal.getTime();
-
-        // Get max queue number for today
-        Integer maxQueueNumber = orderRepo.findMaxQueueNumberForShopAndDate(shopId, startOfDay, endOfDay);
-
-        // If no orders today, start from 1
-        return (maxQueueNumber == null) ? 1 : maxQueueNumber + 1;
-    }
-
-    /**
-     * Create a new order
+     * TRANSACTION ISOLATION LEVELS:
+     * - READ_UNCOMMITTED: No protection (not used)
+     * - READ_COMMITTED: Prevents dirty reads
+     * - REPEATABLE_READ: Prevents dirty & non-repeatable reads
+     * - SERIALIZABLE: Full isolation (highest level)
+     * 
+     * We use SERIALIZABLE for critical order creation to ensure:
+     * 1. Queue numbers are unique
+     * 2. Order totals are calculated correctly
+     * 3. Menu item prices are captured atomically
      * 
      * @param customerId The ID of the customer placing the order
      * @param shopId     The ID of the shop the order is being placed at
@@ -154,7 +176,7 @@ public class OrderService {
      * @param notes      Any notes for the order
      * @return The created order
      */
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public OrderEntity createOrder(Long customerId, Long shopId, List<OrderItemEntity> orderItems, String notes) {
         logger.info("Creating new order for customer with ID: {} at shop with ID: {}", customerId, shopId);
 
@@ -182,6 +204,8 @@ public class OrderService {
         order.setShop(shop);
         order.setStatus(OrderEntity.Status.PENDING);
         order.setOrderDateTime(new Date());
+
+        // ✅ RACE CONDITION PROTECTED: Generate queue number with locking
         order.setQueueNumber(generateQueueNumber(shopId));
 
         // Add order items
@@ -205,7 +229,7 @@ public class OrderService {
                 throw new IllegalArgumentException(menuItem.getItemName() + " is currently not available");
             }
 
-            // Set the menu item and capture current price
+            // Set the menu item and capture current price (PRICE SNAPSHOT)
             item.setMenuItem(menuItem);
             item.setPriceAtPurchase(menuItem.getPrice());
 
@@ -216,11 +240,11 @@ public class OrderService {
         // Calculate total amount
         order.calculateTotalAmount();
 
-        // Save the order
+        // Save the order (within the SERIALIZABLE transaction)
         OrderEntity savedOrder = orderRepo.save(order);
 
-        logger.info("Order created with ID: {} and queue number: {}", savedOrder.getOrderId(),
-                savedOrder.getQueueNumber());
+        logger.info("✅ Order created with ID: {} and queue number: {} (race-condition safe)",
+                savedOrder.getOrderId(), savedOrder.getQueueNumber());
         return savedOrder;
     }
 
@@ -321,7 +345,7 @@ public class OrderService {
      * @param endDate   The end date
      * @return Total revenue
      */
-    public Double calculateRevenue(Long shopId, Date startDate, Date endDate) {
+    public BigDecimal calculateRevenue(Long shopId, Date startDate, Date endDate) {
         logger.info("Calculating revenue for shop {} between {} and {}", shopId, startDate, endDate);
         return orderRepo.calculateRevenueForShopAndDateRange(shopId, startDate, endDate);
     }

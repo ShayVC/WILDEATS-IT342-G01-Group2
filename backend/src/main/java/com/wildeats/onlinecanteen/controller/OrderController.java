@@ -1,5 +1,6 @@
 package com.wildeats.onlinecanteen.controller;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -502,7 +503,7 @@ public class OrderController {
                     .body(Map.of("message", "You can only view revenue for your own shops"));
         }
 
-        Double revenue = orderService.calculateRevenue(shopId, startDate, endDate);
+        BigDecimal revenue = orderService.calculateRevenue(shopId, startDate, endDate);
         return ResponseEntity.ok(Map.of(
                 "shopId", shopId,
                 "startDate", startDate,

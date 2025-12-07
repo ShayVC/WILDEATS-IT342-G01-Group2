@@ -1,6 +1,8 @@
 package com.wildeats.onlinecanteen.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+
 import java.math.BigDecimal;
 
 @Entity
@@ -21,6 +23,7 @@ public class OrderItemEntity {
     private MenuItemEntity menuItem;
 
     @Column(nullable = false)
+    @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;
 
     @Column(name = "price_at_purchase", nullable = false, precision = 10, scale = 2)

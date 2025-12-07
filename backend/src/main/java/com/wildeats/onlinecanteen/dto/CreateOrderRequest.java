@@ -4,6 +4,7 @@ import java.util.List;
 import com.wildeats.onlinecanteen.entity.OrderItemEntity;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
@@ -20,6 +21,7 @@ public class CreateOrderRequest {
     @NotNull(message = "Shop ID is required")
     private Long shopId;
 
+    @Valid
     @NotEmpty(message = "Order must contain at least one item")
     private List<OrderItemEntity> orderItems;
 
