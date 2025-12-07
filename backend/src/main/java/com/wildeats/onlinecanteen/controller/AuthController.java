@@ -138,6 +138,12 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         logger.info("Registration attempt for email: {}", registerRequest.getEmail());
 
+        if (registerRequest.getConfirmPassword() != null &&
+                !registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Passwords do not match"));
+        }
+
         try {
             // Check if email already exists
             if (userService.findByEmail(registerRequest.getEmail()) != null) {
@@ -154,7 +160,7 @@ public class AuthController {
             newUser.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
             newUser.setCreatedAt(new Date());
 
-            // ✅ EVERYONE registers as CUSTOMER by default
+            // EVERYONE registers as CUSTOMER by default
             // Sellers get SELLER role through Admin approval after creating a shop
             String primaryRole = "CUSTOMER";
 
