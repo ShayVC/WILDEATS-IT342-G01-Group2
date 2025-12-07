@@ -3,6 +3,7 @@ package com.wildeats.onlinecanteen.controller;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import jakarta.validation.Valid;
 
@@ -15,6 +16,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import com.wildeats.onlinecanteen.dto.MenuItemResponse;
 import com.wildeats.onlinecanteen.entity.MenuItemEntity;
 import com.wildeats.onlinecanteen.entity.ShopEntity;
 import com.wildeats.onlinecanteen.entity.UserEntity;
@@ -81,7 +83,13 @@ public class MenuItemController {
         }
 
         List<MenuItemEntity> menuItems = menuItemService.getAvailableMenuItemsByShopId(shopId);
-        return ResponseEntity.ok(menuItems);
+
+        // Convert to DTOs
+        List<MenuItemResponse> menuItemDTOs = menuItems.stream()
+                .map(MenuItemResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(menuItemDTOs);
     }
 
     /**
@@ -96,7 +104,9 @@ public class MenuItemController {
 
         MenuItemEntity menuItem = menuItemService.getMenuItemById(id);
         if (menuItem != null) {
-            return ResponseEntity.ok(menuItem);
+            // Convert to DTO
+            MenuItemResponse menuItemDTO = new MenuItemResponse(menuItem);
+            return ResponseEntity.ok(menuItemDTO);
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "Menu item not found"));
@@ -123,7 +133,13 @@ public class MenuItemController {
         }
 
         List<MenuItemEntity> menuItems = menuItemService.searchMenuItems(shopId, searchTerm);
-        return ResponseEntity.ok(menuItems);
+
+        // Convert to DTOs
+        List<MenuItemResponse> menuItemDTOs = menuItems.stream()
+                .map(MenuItemResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(menuItemDTOs);
     }
 
     /**
@@ -146,7 +162,13 @@ public class MenuItemController {
         }
 
         List<MenuItemEntity> menuItems = menuItemService.getMenuItemsByPriceRange(shopId, maxPrice);
-        return ResponseEntity.ok(menuItems);
+
+        // Convert to DTOs
+        List<MenuItemResponse> menuItemDTOs = menuItems.stream()
+                .map(MenuItemResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(menuItemDTOs);
     }
 
     /**
@@ -168,7 +190,6 @@ public class MenuItemController {
                     .body(Map.of("message", "User not authenticated"));
         }
 
-        // Check if user exists and is a seller
         UserEntity user = userService.getUserById(userId);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -180,7 +201,6 @@ public class MenuItemController {
                     .body(Map.of("message", "Only sellers can create menu items"));
         }
 
-        // Check if shop exists and is owned by the user
         ShopEntity shop = shopService.getShopById(shopId);
         if (shop == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -194,7 +214,11 @@ public class MenuItemController {
 
         try {
             MenuItemEntity createdMenuItem = menuItemService.createMenuItem(menuItem, shopId);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdMenuItem);
+
+            // Convert to DTO
+            MenuItemResponse menuItemDTO = new MenuItemResponse(createdMenuItem);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(menuItemDTO);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));
@@ -220,7 +244,6 @@ public class MenuItemController {
                     .body(Map.of("message", "User not authenticated"));
         }
 
-        // Check if user exists and is a seller
         UserEntity user = userService.getUserById(userId);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -232,14 +255,12 @@ public class MenuItemController {
                     .body(Map.of("message", "Only sellers can update menu items"));
         }
 
-        // Check if menu item exists
         MenuItemEntity existingItem = menuItemService.getMenuItemById(id);
         if (existingItem == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "Menu item not found"));
         }
 
-        // Check if the shop is owned by the user
         Long shopId = existingItem.getShop().getShopId();
         if (!shopService.isShopOwnedByUser(userId, shopId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -250,7 +271,11 @@ public class MenuItemController {
 
         try {
             MenuItemEntity updatedMenuItem = menuItemService.updateMenuItem(menuItem);
-            return ResponseEntity.ok(updatedMenuItem);
+
+            // Convert to DTO
+            MenuItemResponse menuItemDTO = new MenuItemResponse(updatedMenuItem);
+
+            return ResponseEntity.ok(menuItemDTO);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));
@@ -277,7 +302,6 @@ public class MenuItemController {
                     .body(Map.of("message", "User not authenticated"));
         }
 
-        // Check if user exists and is a seller
         UserEntity user = userService.getUserById(userId);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -289,14 +313,12 @@ public class MenuItemController {
                     .body(Map.of("message", "Only sellers can update menu item availability"));
         }
 
-        // Check if menu item exists
         MenuItemEntity existingItem = menuItemService.getMenuItemById(id);
         if (existingItem == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "Menu item not found"));
         }
 
-        // Check if the shop is owned by the user
         Long shopId = existingItem.getShop().getShopId();
         if (!shopService.isShopOwnedByUser(userId, shopId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -305,7 +327,11 @@ public class MenuItemController {
 
         try {
             MenuItemEntity updatedMenuItem = menuItemService.updateMenuItemAvailability(id, isAvailable);
-            return ResponseEntity.ok(updatedMenuItem);
+
+            // Convert to DTO
+            MenuItemResponse menuItemDTO = new MenuItemResponse(updatedMenuItem);
+
+            return ResponseEntity.ok(menuItemDTO);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));

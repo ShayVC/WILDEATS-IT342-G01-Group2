@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import jakarta.validation.Valid;
 
@@ -25,6 +26,7 @@ import com.wildeats.onlinecanteen.service.ShopService;
 import com.wildeats.onlinecanteen.service.UserService;
 import com.wildeats.onlinecanteen.dto.CreateOrderRequest;
 import com.wildeats.onlinecanteen.dto.UpdateOrderStatusRequest;
+import com.wildeats.onlinecanteen.dto.OrderResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,14 +72,15 @@ public class OrderController {
     }
 
     /**
-     * Get all orders for the current user (customer or seller)
+     * Get all orders placed by the current user as a customer
+     * (Orders they made at any shop, regardless of their seller role)
      * 
-     * @return List of orders for the user
+     * @return List of orders placed by user (as DTOs)
      */
     @GetMapping("/my-orders")
     public ResponseEntity<?> getMyOrders() {
         Long userId = getCurrentUserId();
-        logger.info("GET request to fetch orders for user with ID: {}", userId);
+        logger.info("GET request to fetch orders placed by user with ID: {}", userId);
 
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -90,36 +93,73 @@ public class OrderController {
                     .body(Map.of("message", "User not found"));
         }
 
-        List<OrderEntity> orders;
-        if (user.isSeller()) {
-            // For sellers, get orders for their shops
-            List<Long> shopIds = shopService.getShopsByOwnerId(userId).stream()
-                    .map(shop -> shop.getShopId())
-                    .toList();
+        // Get orders placed by this user as a customer
+        List<OrderEntity> orders = orderService.getOrdersByCustomerId(userId);
+        logger.info("Found {} orders placed by user", orders.size());
 
-            // If the seller has no shops, return an empty list
-            if (shopIds.isEmpty()) {
-                return ResponseEntity.ok(List.of());
-            }
+        // Convert to DTOs
+        List<OrderResponse> orderDTOs = orders.stream()
+                .map(OrderResponse::new)
+                .collect(Collectors.toList());
 
-            // Get orders for all shops owned by the seller
-            orders = new java.util.ArrayList<>();
-            for (Long shopId : shopIds) {
-                orders.addAll(orderService.getOrdersByShopId(shopId));
-            }
-        } else {
-            // For customers, get their orders
-            orders = orderService.getOrdersByCustomerId(userId);
+        return ResponseEntity.ok(orderDTOs);
+    }
+
+    /**
+     * Get orders received for current user's shops (SELLER only)
+     * (Orders that customers made at shops owned by this user)
+     * 
+     * @return List of orders for user's shops (as DTOs)
+     */
+    @GetMapping("/my-shop-orders")
+    public ResponseEntity<?> getMyShopOrders() {
+        Long userId = getCurrentUserId();
+        logger.info("GET request to fetch shop orders for user with ID: {}", userId);
+
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "User not authenticated"));
         }
 
-        return ResponseEntity.ok(orders);
+        UserEntity user = userService.getUserById(userId);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "User not found"));
+        }
+
+        if (!user.isSeller()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "User does not have seller role"));
+        }
+
+        List<Long> shopIds = shopService.getShopsByOwnerId(userId).stream()
+                .map(shop -> shop.getShopId())
+                .toList();
+
+        if (shopIds.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<OrderEntity> orders = new java.util.ArrayList<>();
+        for (Long shopId : shopIds) {
+            orders.addAll(orderService.getOrdersByShopId(shopId));
+        }
+
+        logger.info("Found {} orders for user's shops", orders.size());
+
+        // Convert to DTOs
+        List<OrderResponse> orderDTOs = orders.stream()
+                .map(OrderResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(orderDTOs);
     }
 
     /**
      * Get orders for a specific shop (SELLER only)
      * 
      * @param shopId The ID of the shop
-     * @return List of orders for the shop
+     * @return List of orders for the shop (as DTOs)
      */
     @GetMapping("/shop/{shopId}")
     public ResponseEntity<?> getOrdersByShop(@PathVariable Long shopId) {
@@ -137,21 +177,26 @@ public class OrderController {
                     .body(Map.of("message", "User not found"));
         }
 
-        // Check if the user is a seller and owns the shop
         if (!user.isSeller() || !shopService.isShopOwnedByUser(userId, shopId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "You can only view orders for your own shops"));
         }
 
         List<OrderEntity> orders = orderService.getOrdersByShopId(shopId);
-        return ResponseEntity.ok(orders);
+
+        // Convert to DTOs
+        List<OrderResponse> orderDTOs = orders.stream()
+                .map(OrderResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(orderDTOs);
     }
 
     /**
      * Get active orders for a shop (SELLER only)
      * 
      * @param shopId The ID of the shop
-     * @return List of active orders for the shop
+     * @return List of active orders for the shop (as DTOs)
      */
     @GetMapping("/shop/{shopId}/active")
     public ResponseEntity<?> getActiveOrdersByShop(@PathVariable Long shopId) {
@@ -169,14 +214,19 @@ public class OrderController {
                     .body(Map.of("message", "User not found"));
         }
 
-        // Check if the user is a seller and owns the shop
         if (!user.isSeller() || !shopService.isShopOwnedByUser(userId, shopId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "You can only view orders for your own shops"));
         }
 
         List<OrderEntity> orders = orderService.getActiveOrdersByShopId(shopId);
-        return ResponseEntity.ok(orders);
+
+        // Convert to DTOs
+        List<OrderResponse> orderDTOs = orders.stream()
+                .map(OrderResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(orderDTOs);
     }
 
     /**
@@ -184,7 +234,7 @@ public class OrderController {
      * 
      * @param shopId The ID of the shop
      * @param status The status of the orders
-     * @return List of orders with the specified status for the shop
+     * @return List of orders with the specified status (as DTOs)
      */
     @GetMapping("/shop/{shopId}/status/{status}")
     public ResponseEntity<?> getOrdersByShopAndStatus(
@@ -205,7 +255,6 @@ public class OrderController {
                     .body(Map.of("message", "User not found"));
         }
 
-        // Check if the user is a seller and owns the shop
         if (!user.isSeller() || !shopService.isShopOwnedByUser(userId, shopId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "You can only view orders for your own shops"));
@@ -214,7 +263,13 @@ public class OrderController {
         try {
             OrderEntity.Status orderStatus = OrderEntity.Status.valueOf(status.toUpperCase());
             List<OrderEntity> orders = orderService.getOrdersByShopIdAndStatus(shopId, orderStatus);
-            return ResponseEntity.ok(orders);
+
+            // Convert to DTOs
+            List<OrderResponse> orderDTOs = orders.stream()
+                    .map(OrderResponse::new)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(orderDTOs);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", "Invalid status: " + status));
@@ -225,7 +280,7 @@ public class OrderController {
      * Get orders for current user with a specific status
      * 
      * @param status The status of the orders
-     * @return List of orders with the specified status
+     * @return List of orders with the specified status (as DTOs)
      */
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getMyOrdersByStatus(@PathVariable String status) {
@@ -246,7 +301,13 @@ public class OrderController {
         try {
             OrderEntity.Status orderStatus = OrderEntity.Status.valueOf(status.toUpperCase());
             List<OrderEntity> orders = orderService.getOrdersByCustomerIdAndStatus(userId, orderStatus);
-            return ResponseEntity.ok(orders);
+
+            // Convert to DTOs
+            List<OrderResponse> orderDTOs = orders.stream()
+                    .map(OrderResponse::new)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(orderDTOs);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", "Invalid status: " + status));
@@ -257,7 +318,7 @@ public class OrderController {
      * Get an order by its ID
      * 
      * @param id The order ID
-     * @return The order if found and the user has access to it
+     * @return The order if found and the user has access to it (as DTO)
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getOrderById(@PathVariable Long id) {
@@ -282,28 +343,33 @@ public class OrderController {
         }
 
         // Check if the user has access to the order
-        if (user.isSeller()) {
-            // Sellers can only view orders for their shops
-            if (!shopService.isShopOwnedByUser(userId, order.getShop().getShopId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "You can only view orders for your own shops"));
-            }
-        } else {
-            // Customers can only view their own orders
-            if (!orderService.isOrderOwnedByCustomer(id, userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "You can only view your own orders"));
-            }
+        boolean hasAccess = false;
+
+        // Check if user is the customer who placed the order
+        if (user.isCustomer() && orderService.isOrderOwnedByCustomer(id, userId)) {
+            hasAccess = true;
         }
 
-        return ResponseEntity.ok(order);
+        // Check if user is the seller who owns the shop
+        if (user.isSeller() && shopService.isShopOwnedByUser(userId, order.getShop().getShopId())) {
+            hasAccess = true;
+        }
+
+        if (!hasAccess) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "You do not have access to this order"));
+        }
+
+        // Convert to DTO
+        OrderResponse orderDTO = new OrderResponse(order);
+        return ResponseEntity.ok(orderDTO);
     }
 
     /**
      * Create a new order (CUSTOMER only)
      * 
      * @param request The order request containing shop ID, order items, and notes
-     * @return The created order
+     * @return The created order (as DTO)
      */
     @PostMapping
     public ResponseEntity<?> createOrder(@Valid @RequestBody CreateOrderRequest request) {
@@ -321,7 +387,6 @@ public class OrderController {
                     .body(Map.of("message", "User not found"));
         }
 
-        // Only customers can create orders
         if (!user.isCustomer()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "Only customers can create orders"));
@@ -334,7 +399,9 @@ public class OrderController {
                     request.getOrderItems(),
                     request.getNotes());
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(order);
+            // Convert to DTO
+            OrderResponse orderDTO = new OrderResponse(order);
+            return ResponseEntity.status(HttpStatus.CREATED).body(orderDTO);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));
@@ -346,7 +413,7 @@ public class OrderController {
      * 
      * @param id      The order ID
      * @param request The request containing the new status
-     * @return The updated order
+     * @return The updated order (as DTO)
      */
     @PutMapping("/{id}/status")
     public ResponseEntity<?> updateOrderStatus(
@@ -378,28 +445,23 @@ public class OrderController {
 
             // Check permissions based on the requested status change
             if (status == OrderEntity.Status.CANCELLED) {
-                // Both customers and sellers can cancel orders
                 if (user.isCustomer()) {
-                    // Customers can only cancel their own orders
                     if (!orderService.isOrderOwnedByCustomer(id, userId)) {
                         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                                 .body(Map.of("message", "You can only cancel your own orders"));
                     }
                 } else if (user.isSeller()) {
-                    // Sellers can only cancel orders for their shops
                     if (!shopService.isShopOwnedByUser(userId, order.getShop().getShopId())) {
                         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                                 .body(Map.of("message", "You can only cancel orders for your own shops"));
                     }
                 }
             } else {
-                // Only sellers can update order status to other values
                 if (!user.isSeller()) {
                     return ResponseEntity.status(HttpStatus.FORBIDDEN)
                             .body(Map.of("message", "Only sellers can update order status"));
                 }
 
-                // Sellers can only update orders for their shops
                 if (!shopService.isShopOwnedByUser(userId, order.getShop().getShopId())) {
                     return ResponseEntity.status(HttpStatus.FORBIDDEN)
                             .body(Map.of("message", "You can only update orders for your own shops"));
@@ -407,7 +469,10 @@ public class OrderController {
             }
 
             OrderEntity updatedOrder = orderService.updateOrderStatus(id, status);
-            return ResponseEntity.ok(updatedOrder);
+
+            // Convert to DTO
+            OrderResponse orderDTO = new OrderResponse(updatedOrder);
+            return ResponseEntity.ok(orderDTO);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));
@@ -419,7 +484,7 @@ public class OrderController {
      * 
      * @param id     The order ID
      * @param reason The cancellation reason
-     * @return The cancelled order
+     * @return The cancelled order (as DTO)
      */
     @PostMapping("/{id}/cancel")
     public ResponseEntity<?> cancelOrder(
@@ -462,7 +527,10 @@ public class OrderController {
 
         try {
             OrderEntity cancelledOrder = orderService.cancelOrder(id, reason);
-            return ResponseEntity.ok(cancelledOrder);
+
+            // Convert to DTO
+            OrderResponse orderDTO = new OrderResponse(cancelledOrder);
+            return ResponseEntity.ok(orderDTO);
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));
@@ -497,7 +565,6 @@ public class OrderController {
                     .body(Map.of("message", "User not found"));
         }
 
-        // Check if the user is a seller and owns the shop
         if (!user.isSeller() || !shopService.isShopOwnedByUser(userId, shopId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "You can only view revenue for your own shops"));

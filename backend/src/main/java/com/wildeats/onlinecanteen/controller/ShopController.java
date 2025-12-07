@@ -3,6 +3,7 @@ package com.wildeats.onlinecanteen.controller;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import jakarta.validation.Valid;
 
@@ -16,6 +17,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import com.wildeats.onlinecanteen.dto.ShopResponse;
 import com.wildeats.onlinecanteen.entity.ShopEntity;
 import com.wildeats.onlinecanteen.entity.UserEntity;
 import com.wildeats.onlinecanteen.service.ShopService;
@@ -69,7 +71,13 @@ public class ShopController {
     public ResponseEntity<?> getAllShops() {
         logger.info("GET request to fetch all operational shops");
         List<ShopEntity> shops = shopService.getAllOperationalShops();
-        return ResponseEntity.ok(shops);
+
+        // Convert to DTOs
+        List<ShopResponse> shopDTOs = shops.stream()
+                .map(ShopResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(shopDTOs);
     }
 
     /**
@@ -85,7 +93,13 @@ public class ShopController {
         try {
             ShopEntity.Status shopStatus = ShopEntity.Status.valueOf(status.toUpperCase());
             List<ShopEntity> shops = shopService.getShopsByStatus(shopStatus);
-            return ResponseEntity.ok(shops);
+
+            // Convert to DTOs
+            List<ShopResponse> shopDTOs = shops.stream()
+                    .map(ShopResponse::new)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(shopDTOs);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", "Invalid status: " + status));
@@ -104,7 +118,9 @@ public class ShopController {
 
         ShopEntity shop = shopService.getShopById(id);
         if (shop != null && shop.getStatus() == ShopEntity.Status.ACTIVE) {
-            return ResponseEntity.ok(shop);
+            // Convert to DTO
+            ShopResponse shopDTO = new ShopResponse(shop);
+            return ResponseEntity.ok(shopDTO);
         } else if (shop != null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "Shop is not currently active"));
@@ -137,7 +153,13 @@ public class ShopController {
         }
 
         List<ShopEntity> shops = shopService.getShopsByOwnerId(userId);
-        return ResponseEntity.ok(shops);
+
+        // Convert to DTOs
+        List<ShopResponse> shopDTOs = shops.stream()
+                .map(ShopResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(shopDTOs);
     }
 
     /**
@@ -164,17 +186,20 @@ public class ShopController {
                     .body(Map.of("message", "User not found"));
         }
 
-        // Validate shop data
         if (shop.getShopName() == null || shop.getShopName().trim().isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", "Shop name is required"));
         }
 
         ShopEntity createdShop = shopService.createShop(shop, user);
+
+        // Convert to DTO
+        ShopResponse shopDTO = new ShopResponse(createdShop);
+
         logger.info("Shop created with ID: {} and status: {}", createdShop.getShopId(), createdShop.getStatus());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "shop", createdShop,
+                "shop", shopDTO,
                 "message", "Shop application submitted. Awaiting admin approval."));
     }
 
@@ -204,32 +229,32 @@ public class ShopController {
                     .body(Map.of("message", "User not found"));
         }
 
-        // Check if the shop exists
         ShopEntity existingShop = shopService.getShopById(id);
         if (existingShop == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "Shop not found"));
         }
 
-        // Check if the user is the owner of the shop
         if (!shopService.isShopOwnedByUser(userId, id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "You can only update your own shops"));
         }
 
-        // Update shop properties but keep the owner, status, and creation date
         shop.setShopId(id);
         shop.setOwner(existingShop.getOwner());
-        shop.setStatus(existingShop.getStatus()); // Status can only be changed by admin
+        shop.setStatus(existingShop.getStatus());
         shop.setCreatedAt(existingShop.getCreatedAt());
 
-        // If shop name is not provided, keep the existing one
         if (shop.getShopName() == null) {
             shop.setShopName(existingShop.getShopName());
         }
 
         ShopEntity updatedShop = shopService.updateShop(shop);
-        return ResponseEntity.ok(updatedShop);
+
+        // Convert to DTO
+        ShopResponse shopDTO = new ShopResponse(updatedShop);
+
+        return ResponseEntity.ok(shopDTO);
     }
 
     /**
@@ -249,14 +274,12 @@ public class ShopController {
                     .body(Map.of("message", "User not authenticated"));
         }
 
-        // Check if the shop exists
         ShopEntity existingShop = shopService.getShopById(id);
         if (existingShop == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "Shop not found"));
         }
 
-        // Check if the user is the owner of the shop
         if (!shopService.isShopOwnedByUser(userId, id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "You can only toggle status for your own shops"));
@@ -264,7 +287,11 @@ public class ShopController {
 
         try {
             ShopEntity updatedShop = shopService.toggleShopOpenStatus(id);
-            return ResponseEntity.ok(updatedShop);
+
+            // Convert to DTO
+            ShopResponse shopDTO = new ShopResponse(updatedShop);
+
+            return ResponseEntity.ok(shopDTO);
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));
@@ -320,7 +347,13 @@ public class ShopController {
     public ResponseEntity<?> getAllShopsAdmin() {
         logger.info("Admin fetching all shops");
         List<ShopEntity> shops = shopService.getAllShops();
-        return ResponseEntity.ok(shops);
+
+        // Convert to DTOs
+        List<ShopResponse> shopDTOs = shops.stream()
+                .map(ShopResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(shopDTOs);
     }
 
     /**
@@ -342,10 +375,8 @@ public class ShopController {
         }
 
         try {
-            // Approve the shop
             ShopEntity approvedShop = shopService.approveShop(id);
 
-            // Grant SELLER role to owner (if they don't have it)
             UserEntity owner = approvedShop.getOwner();
             if (!owner.isSeller()) {
                 userService.addRoleToUser(owner.getUserId(), "SELLER");
@@ -353,8 +384,11 @@ public class ShopController {
                         owner.getUserId(), id);
             }
 
+            // Convert to DTO
+            ShopResponse shopDTO = new ShopResponse(approvedShop);
+
             return ResponseEntity.ok(Map.of(
-                    "shop", approvedShop,
+                    "shop", shopDTO,
                     "message", "Shop approved and owner granted seller privileges"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -381,7 +415,11 @@ public class ShopController {
 
         try {
             ShopEntity suspendedShop = shopService.suspendShop(id);
-            return ResponseEntity.ok(suspendedShop);
+
+            // Convert to DTO
+            ShopResponse shopDTO = new ShopResponse(suspendedShop);
+
+            return ResponseEntity.ok(shopDTO);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));
@@ -407,6 +445,10 @@ public class ShopController {
 
         try {
             ShopEntity closedShop = shopService.closeShop(id);
+
+            // Convert to DTO
+            ShopResponse shopDTO = new ShopResponse(closedShop);
+
             return ResponseEntity.ok(closedShop);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

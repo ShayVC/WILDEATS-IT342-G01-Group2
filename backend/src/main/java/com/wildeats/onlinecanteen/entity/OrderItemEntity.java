@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Min;
 
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "order_item")
 public class OrderItemEntity {
@@ -16,10 +18,12 @@ public class OrderItemEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
+    @JsonIgnoreProperties({ "orderItems" })
     private OrderEntity order;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "item_id", nullable = false)
+    @JsonIgnoreProperties({ "shop" })
     private MenuItemEntity menuItem;
 
     @Column(nullable = false)

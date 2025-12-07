@@ -39,7 +39,7 @@ public class ShopEntity {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", nullable = false)
-    @JsonIgnoreProperties({ "roles", "password" })
+    @JsonIgnoreProperties({ "roles", "password", "shops", "orders" })
     private UserEntity owner;
 
     @Column(name = "created_at")

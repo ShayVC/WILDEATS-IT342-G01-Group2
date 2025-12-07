@@ -20,7 +20,6 @@ import com.wildeats.onlinecanteen.entity.MenuItemEntity;
 import com.wildeats.onlinecanteen.entity.ShopEntity;
 import com.wildeats.onlinecanteen.entity.UserEntity;
 import com.wildeats.onlinecanteen.repository.OrderRepository;
-import com.wildeats.onlinecanteen.repository.OrderItemRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +29,6 @@ public class OrderService {
 
     @Autowired
     private OrderRepository orderRepo;
-
-    @Autowired
-    private OrderItemRepository orderItemRepo;
 
     @Autowired
     private MenuItemService menuItemService;

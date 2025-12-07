@@ -3,6 +3,8 @@ package com.wildeats.onlinecanteen.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "menu_item")
 public class MenuItemEntity {
@@ -14,6 +16,7 @@ public class MenuItemEntity {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "shop_id", nullable = false)
+    @JsonIgnoreProperties({ "menuItems", "owner" })
     private ShopEntity shop;
 
     @Column(name = "item_name", nullable = false, length = 100)

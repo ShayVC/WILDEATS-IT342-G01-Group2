@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "orders")
 public class OrderEntity {
@@ -25,10 +27,12 @@ public class OrderEntity {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({ "roles", "password", "orders" })
     private UserEntity customer;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "shop_id", nullable = false)
+    @JsonIgnoreProperties({ "menuItems", "owner", "orders" })
     private ShopEntity shop;
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)

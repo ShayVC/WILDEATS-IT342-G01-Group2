@@ -27,8 +27,8 @@ public class ShopService {
      * @return List of all active shops
      */
     public List<ShopEntity> getAllShops() {
-        logger.info("Fetching all active shops");
-        return shopRepo.findByStatus(Status.ACTIVE);
+        logger.info("Fetching all shops (all statuses)");
+        return shopRepo.findAll();
     }
 
     /**
