@@ -512,17 +512,23 @@ public class OrderController {
                     .body(Map.of("message", "Order not found"));
         }
 
-        // Check permissions
-        if (user.isCustomer()) {
-            if (!orderService.isOrderOwnedByCustomer(id, userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "You can only cancel your own orders"));
-            }
-        } else if (user.isSeller()) {
-            if (!shopService.isShopOwnedByUser(userId, order.getShop().getShopId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "You can only cancel orders for your own shops"));
-            }
+        // Check permissions - customer can cancel their own orders, seller can cancel
+        // orders at their shops
+        boolean canCancel = false;
+
+        if (user.isCustomer() && orderService.isOrderOwnedByCustomer(id, userId)) {
+            canCancel = true;
+            logger.info("User {} cancelling their own order {}", userId, id);
+        }
+
+        if (user.isSeller() && shopService.isShopOwnedByUser(userId, order.getShop().getShopId())) {
+            canCancel = true;
+            logger.info("Shop owner {} cancelling order {} for their shop", userId, id);
+        }
+
+        if (!canCancel) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "You can only cancel your own orders or orders at your shops"));
         }
 
         try {

@@ -446,9 +446,6 @@ public class ShopController {
         try {
             ShopEntity closedShop = shopService.closeShop(id);
 
-            // Convert to DTO
-            ShopResponse shopDTO = new ShopResponse(closedShop);
-
             return ResponseEntity.ok(closedShop);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
