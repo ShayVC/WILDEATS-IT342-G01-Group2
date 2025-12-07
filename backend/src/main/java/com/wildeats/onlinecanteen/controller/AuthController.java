@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import com.wildeats.onlinecanteen.entity.UserEntity;
@@ -15,10 +17,13 @@ import com.wildeats.onlinecanteen.dto.LoginRequest;
 import com.wildeats.onlinecanteen.dto.RegisterRequest;
 import com.wildeats.onlinecanteen.dto.AuthResponse;
 
+import jakarta.validation.Valid;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,27 +47,30 @@ public class AuthController {
     private PasswordEncoder passwordEncoder;
 
     /**
+     * Global validation exception handler
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+    }
+
+    /**
      * User login
      * 
      * @param loginRequest Email and password
      * @return JWT token and user details
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         logger.info("Login attempt for email: {}", loginRequest.getEmail());
 
         try {
-            // Validate input
-            if (loginRequest.getEmail() == null || loginRequest.getEmail().trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Email is required"));
-            }
-
-            if (loginRequest.getPassword() == null || loginRequest.getPassword().trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Password is required"));
-            }
-
             UserEntity user = userService.findByEmail(loginRequest.getEmail());
 
             if (user == null) {
@@ -78,7 +86,7 @@ public class AuthController {
                         .body(Map.of("message", "Invalid email or password"));
             }
 
-            // Determine primary role
+            // Determine primary role (Priority: ADMIN > SELLER > CUSTOMER)
             String primaryRole = "CUSTOMER"; // Default role
             if (user.isAdmin()) {
                 primaryRole = "ADMIN";
@@ -90,6 +98,11 @@ public class AuthController {
                 primaryRole = user.getRoles().iterator().next().getRoleName();
             }
 
+            // Get all role names
+            List<String> roleNames = user.getRoles().stream()
+                    .map(RoleEntity::getRoleName)
+                    .collect(Collectors.toList());
+
             // Generate JWT token
             String token = jwtUtil.generateToken(user.getUserId(), user.getEmail(), primaryRole);
 
@@ -98,11 +111,13 @@ public class AuthController {
             response.put("token", token);
             response.put("user", new AuthResponse(
                     user.getUserId(),
-                    user.getName(),
+                    user.getFirstName(),
+                    user.getLastName(),
                     user.getEmail(),
-                    primaryRole));
+                    primaryRole,
+                    roleNames));
 
-            logger.info("Login successful for: {}", loginRequest.getEmail());
+            logger.info("Login successful for: {} with role: {}", loginRequest.getEmail(), primaryRole);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Login error for {}: {}", loginRequest.getEmail(), e.getMessage());
@@ -113,37 +128,17 @@ public class AuthController {
 
     /**
      * User registration
+     * EVERYONE registers as CUSTOMER by default
+     * Sellers receive SELLER role when admin approves their shop application
      * 
-     * @param registerRequest Name, email, and password
+     * @param registerRequest FirstName, LastName, Email, and Password
      * @return JWT token and user details
      */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         logger.info("Registration attempt for email: {}", registerRequest.getEmail());
 
         try {
-            // Validate input
-            if (registerRequest.getName() == null || registerRequest.getName().trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Name is required"));
-            }
-
-            if (registerRequest.getEmail() == null || registerRequest.getEmail().trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Email is required"));
-            }
-
-            if (registerRequest.getPassword() == null || registerRequest.getPassword().trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Password is required"));
-            }
-
-            // Email format validation
-            if (!registerRequest.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Invalid email format"));
-            }
-
             // Check if email already exists
             if (userService.findByEmail(registerRequest.getEmail()) != null) {
                 logger.warn("Registration failed - email already exists: {}", registerRequest.getEmail());
@@ -151,54 +146,36 @@ public class AuthController {
                         .body(Map.of("message", "Email already in use"));
             }
 
-            // Validate password strength
-            if (registerRequest.getPassword().length() < 6) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Password must be at least 6 characters long"));
-            }
-
-            // Split name into first and last name
-            String[] nameParts = registerRequest.getName().split(" ", 2);
-            String firstName = nameParts[0];
-            String lastName = nameParts.length > 1 ? nameParts[1] : "";
-
             // Create new user
             UserEntity newUser = new UserEntity();
-            newUser.setFirstName(firstName);
-            newUser.setLastName(lastName);
+            newUser.setFirstName(registerRequest.getFirstName());
+            newUser.setLastName(registerRequest.getLastName());
             newUser.setEmail(registerRequest.getEmail());
             newUser.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
             newUser.setCreatedAt(new Date());
 
-            // Determine role based on email prefix
-            // Emails starting with "shop." get SELLER role, others get CUSTOMER role
-            String primaryRole;
-            if (registerRequest.getEmail().startsWith("shop.")) {
-                primaryRole = "SELLER";
+            // ✅ EVERYONE registers as CUSTOMER by default
+            // Sellers get SELLER role through Admin approval after creating a shop
+            String primaryRole = "CUSTOMER";
 
-                // Add both SELLER and CUSTOMER roles (sellers can also be customers)
-                Optional<RoleEntity> sellerRole = roleRepository.findByRoleName("SELLER");
-                Optional<RoleEntity> customerRole = roleRepository.findByRoleName("CUSTOMER");
-
-                if (sellerRole.isPresent()) {
-                    newUser.addRole(sellerRole.get());
-                }
-                if (customerRole.isPresent()) {
-                    newUser.addRole(customerRole.get());
-                }
+            // Add CUSTOMER role
+            Optional<RoleEntity> customerRole = roleRepository.findByRoleName("CUSTOMER");
+            if (customerRole.isPresent()) {
+                newUser.addRole(customerRole.get());
             } else {
-                primaryRole = "CUSTOMER";
-
-                // Add CUSTOMER role
-                Optional<RoleEntity> customerRole = roleRepository.findByRoleName("CUSTOMER");
-                if (customerRole.isPresent()) {
-                    newUser.addRole(customerRole.get());
-                }
+                logger.error("CUSTOMER role not found in database");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("message", "System error: Default role not configured"));
             }
 
             // Save user to database
             UserEntity savedUser = userService.createUser(newUser);
-            logger.info("User registered successfully with ID: {} and role: {}", savedUser.getUserId(), primaryRole);
+            logger.info("User registered successfully with ID: {} and role: CUSTOMER", savedUser.getUserId());
+
+            // Get all role names
+            List<String> roleNames = savedUser.getRoles().stream()
+                    .map(RoleEntity::getRoleName)
+                    .collect(Collectors.toList());
 
             // Generate JWT token
             String token = jwtUtil.generateToken(
@@ -211,9 +188,11 @@ public class AuthController {
             response.put("token", token);
             response.put("user", new AuthResponse(
                     savedUser.getUserId(),
-                    savedUser.getName(),
+                    savedUser.getFirstName(),
+                    savedUser.getLastName(),
                     savedUser.getEmail(),
-                    primaryRole));
+                    primaryRole,
+                    roleNames));
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
@@ -230,7 +209,6 @@ public class AuthController {
      */
     @GetMapping("/check")
     public ResponseEntity<?> checkAuthStatus() {
-        // This endpoint validates the JWT token via the filter
         logger.info("Auth check - token is valid");
         return ResponseEntity.ok(Map.of("message", "Authenticated", "authenticated", true));
     }
@@ -243,8 +221,6 @@ public class AuthController {
      */
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
-        // With JWT, logout is handled client-side by removing the token
-        // Server-side logout would require token blacklisting (advanced feature)
         logger.info("Logout request received");
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
@@ -283,8 +259,20 @@ public class AuthController {
                         .body(Map.of("message", "User not found"));
             }
 
+            // Get all role names
+            List<String> roleNames = user.getRoles().stream()
+                    .map(RoleEntity::getRoleName)
+                    .collect(Collectors.toList());
+
             // Return user details
-            AuthResponse response = new AuthResponse(userId, user.getName(), email, role);
+            AuthResponse response = new AuthResponse(
+                    userId,
+                    user.getFirstName(),
+                    user.getLastName(),
+                    email,
+                    role,
+                    roleNames);
+
             return ResponseEntity.ok(Map.of(
                     "valid", true,
                     "user", response));

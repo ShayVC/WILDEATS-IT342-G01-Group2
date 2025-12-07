@@ -1,7 +1,10 @@
 package com.wildeats.onlinecanteen.controller;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -9,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import com.wildeats.onlinecanteen.entity.ShopEntity;
@@ -29,6 +34,20 @@ public class ShopController {
 
     @Autowired
     private UserService userService;
+
+    /**
+     * Global validation exception handler
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+    }
 
     /**
      * Helper method to get current user ID from JWT token
@@ -96,12 +115,12 @@ public class ShopController {
     }
 
     /**
-     * Get shops owned by the current user (SELLER only)
+     * Get shops owned by the current user
+     * Any authenticated user can check if they own shops
      * 
      * @return List of shops owned by the user
      */
     @GetMapping("/my-shops")
-    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<?> getMyShops() {
         Long userId = getCurrentUserId();
         logger.info("GET request to fetch shops for user with ID: {}", userId);
@@ -117,24 +136,20 @@ public class ShopController {
                     .body(Map.of("message", "User not found"));
         }
 
-        if (!user.isSeller()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "Only sellers can access their shops"));
-        }
-
         List<ShopEntity> shops = shopService.getShopsByOwnerId(userId);
         return ResponseEntity.ok(shops);
     }
 
     /**
-     * Create a new shop (SELLER only)
+     * Create a new shop (CUSTOMER authenticated)
+     * Shop will be created with PENDING status
+     * After admin approves shop, user will receive SELLER role
      * 
      * @param shop The shop to create
      * @return The created shop
      */
     @PostMapping
-    @PreAuthorize("hasRole('SELLER')")
-    public ResponseEntity<?> createShop(@RequestBody ShopEntity shop) {
+    public ResponseEntity<?> createShop(@Valid @RequestBody ShopEntity shop) {
         Long userId = getCurrentUserId();
         logger.info("POST request to create a new shop from user with ID: {}", userId);
 
@@ -149,11 +164,6 @@ public class ShopController {
                     .body(Map.of("message", "User not found"));
         }
 
-        if (!user.isSeller()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "Only sellers can create shops"));
-        }
-
         // Validate shop data
         if (shop.getShopName() == null || shop.getShopName().trim().isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -163,7 +173,9 @@ public class ShopController {
         ShopEntity createdShop = shopService.createShop(shop, user);
         logger.info("Shop created with ID: {} and status: {}", createdShop.getShopId(), createdShop.getStatus());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdShop);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "shop", createdShop,
+                "message", "Shop application submitted. Awaiting admin approval."));
     }
 
     /**
@@ -177,7 +189,7 @@ public class ShopController {
     @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<?> updateShop(
             @PathVariable Long id,
-            @RequestBody ShopEntity shop) {
+            @Valid @RequestBody ShopEntity shop) {
         Long userId = getCurrentUserId();
         logger.info("PUT request to update shop with ID: {} from user with ID: {}", id, userId);
 
@@ -203,12 +215,6 @@ public class ShopController {
         if (!shopService.isShopOwnedByUser(userId, id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "You can only update your own shops"));
-        }
-
-        // Validate shop data
-        if (shop.getShopName() != null && shop.getShopName().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "Shop name cannot be empty"));
         }
 
         // Update shop properties but keep the owner, status, and creation date
@@ -319,6 +325,7 @@ public class ShopController {
 
     /**
      * Approve a shop - ADMIN only
+     * Also grants SELLER role to the shop owner
      * 
      * @param id The shop ID
      * @return The approved shop
@@ -335,8 +342,20 @@ public class ShopController {
         }
 
         try {
+            // Approve the shop
             ShopEntity approvedShop = shopService.approveShop(id);
-            return ResponseEntity.ok(approvedShop);
+
+            // Grant SELLER role to owner (if they don't have it)
+            UserEntity owner = approvedShop.getOwner();
+            if (!owner.isSeller()) {
+                userService.addRoleToUser(owner.getUserId(), "SELLER");
+                logger.info("Granted SELLER role to user {} for approved shop {}",
+                        owner.getUserId(), id);
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "shop", approvedShop,
+                    "message", "Shop approved and owner granted seller privileges"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));

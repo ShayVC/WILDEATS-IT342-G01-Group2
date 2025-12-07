@@ -1,13 +1,18 @@
 package com.wildeats.onlinecanteen.controller;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import com.wildeats.onlinecanteen.entity.MenuItemEntity;
@@ -33,6 +38,20 @@ public class MenuItemController {
 
     @Autowired
     private UserService userService;
+
+    /**
+     * Global validation exception handler
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+    }
 
     /**
      * Helper method to get current user ID from JWT token
@@ -139,7 +158,7 @@ public class MenuItemController {
      */
     @PostMapping
     public ResponseEntity<?> createMenuItem(
-            @RequestBody MenuItemEntity menuItem,
+            @Valid @RequestBody MenuItemEntity menuItem,
             @RequestParam Long shopId) {
         Long userId = getCurrentUserId();
         logger.info("POST request to create menu item for shop {} from user {}", shopId, userId);
@@ -192,7 +211,7 @@ public class MenuItemController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateMenuItem(
             @PathVariable Long id,
-            @RequestBody MenuItemEntity menuItem) {
+            @Valid @RequestBody MenuItemEntity menuItem) {
         Long userId = getCurrentUserId();
         logger.info("PUT request to update menu item {} from user {}", id, userId);
 

@@ -18,8 +18,7 @@ public class JwtUtil {
     // Generate a secure key for HS256
     private final Key SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
-    // Token validity: 15 minutes
-    private static final long JWT_TOKEN_VALIDITY = 15 * 60 * 1000;
+    private static final long JWT_TOKEN_VALIDITY = 1 * 60 * 60 * 1000; // 1 hour
 
     /**
      * Extract username (email) from token
@@ -101,7 +100,7 @@ public class JwtUtil {
     }
 
     /**
-     * Validate token
+     * Validate token with username check
      */
     public Boolean validateToken(String token, String username) {
         final String extractedUsername = extractUsername(token);

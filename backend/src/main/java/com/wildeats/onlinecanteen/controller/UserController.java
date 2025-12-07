@@ -1,7 +1,11 @@
 package com.wildeats.onlinecanteen.controller;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -9,11 +13,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import com.wildeats.onlinecanteen.dto.AuthResponse;
 import com.wildeats.onlinecanteen.dto.ChangePasswordRequest;
 import com.wildeats.onlinecanteen.dto.UpdateProfileRequest;
+import com.wildeats.onlinecanteen.entity.RoleEntity;
 import com.wildeats.onlinecanteen.entity.UserEntity;
 import com.wildeats.onlinecanteen.service.UserService;
 
@@ -28,6 +35,20 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    /**
+     * Global validation exception handler
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+    }
 
     /**
      * Helper method to get current user ID from JWT token
@@ -61,25 +82,31 @@ public class UserController {
                     .body(Map.of("message", "User not found"));
         }
 
-        // Return user without password
-        AuthResponse response = new AuthResponse();
-        response.setId(user.getUserId());
-        response.setName(user.getName());
-        response.setEmail(user.getEmail());
-
-        // Get primary role (first role or highest priority)
-        if (!user.getRoles().isEmpty()) {
-            // Priority: ADMIN > SELLER > CUSTOMER
-            if (user.isAdmin()) {
-                response.setRole("ADMIN");
-            } else if (user.isSeller()) {
-                response.setRole("SELLER");
-            } else if (user.isCustomer()) {
-                response.setRole("CUSTOMER");
-            } else {
-                response.setRole(user.getRoles().iterator().next().getRoleName());
-            }
+        // Determine primary role (Priority: ADMIN > SELLER > CUSTOMER)
+        String primaryRole = "CUSTOMER";
+        if (user.isAdmin()) {
+            primaryRole = "ADMIN";
+        } else if (user.isSeller()) {
+            primaryRole = "SELLER";
+        } else if (user.isCustomer()) {
+            primaryRole = "CUSTOMER";
+        } else if (!user.getRoles().isEmpty()) {
+            primaryRole = user.getRoles().iterator().next().getRoleName();
         }
+
+        // Get all roles
+        List<String> allRoles = user.getRoles().stream()
+                .map(RoleEntity::getRoleName)
+                .collect(Collectors.toList());
+
+        // Return user without password
+        AuthResponse response = new AuthResponse(
+                user.getUserId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                primaryRole,
+                allRoles);
 
         return ResponseEntity.ok(response);
     }
@@ -91,7 +118,7 @@ public class UserController {
      * @return Updated user profile
      */
     @PutMapping("/profile")
-    public ResponseEntity<?> updateProfile(@RequestBody UpdateProfileRequest request) {
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         Long userId = getCurrentUserId();
         logger.info("Updating profile for user with ID: {}", userId);
 
@@ -100,53 +127,40 @@ public class UserController {
                     .body(Map.of("message", "User not authenticated"));
         }
 
-        // Validate input
-        if (request.getName() == null || request.getName().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "Name cannot be empty"));
-        }
-
-        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "Email cannot be empty"));
-        }
-
-        // Basic email validation
-        if (!request.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "Invalid email format"));
-        }
-
         try {
-            // Split name into first and last name
-            String[] nameParts = request.getName().split(" ", 2);
-            String firstName = nameParts[0];
-            String lastName = nameParts.length > 1 ? nameParts[1] : "";
-
-            UserEntity updatedUser = userService.updateProfile(userId, firstName, lastName, request.getEmail());
+            UserEntity updatedUser = userService.updateProfile(
+                    userId,
+                    request.getFirstName(),
+                    request.getLastName(),
+                    request.getEmail());
 
             if (updatedUser == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("message", "User not found"));
             }
 
-            // Return updated user without password
-            AuthResponse response = new AuthResponse();
-            response.setId(updatedUser.getUserId());
-            response.setName(updatedUser.getName());
-            response.setEmail(updatedUser.getEmail());
-
-            if (!updatedUser.getRoles().isEmpty()) {
-                if (updatedUser.isAdmin()) {
-                    response.setRole("ADMIN");
-                } else if (updatedUser.isSeller()) {
-                    response.setRole("SELLER");
-                } else if (updatedUser.isCustomer()) {
-                    response.setRole("CUSTOMER");
-                } else {
-                    response.setRole(updatedUser.getRoles().iterator().next().getRoleName());
-                }
+            // Determine primary role
+            String primaryRole = "CUSTOMER";
+            if (updatedUser.isAdmin()) {
+                primaryRole = "ADMIN";
+            } else if (updatedUser.isSeller()) {
+                primaryRole = "SELLER";
+            } else if (updatedUser.isCustomer()) {
+                primaryRole = "CUSTOMER";
             }
+
+            // Get all roles
+            List<String> allRoles = updatedUser.getRoles().stream()
+                    .map(RoleEntity::getRoleName)
+                    .collect(Collectors.toList());
+
+            AuthResponse response = new AuthResponse(
+                    updatedUser.getUserId(),
+                    updatedUser.getFirstName(),
+                    updatedUser.getLastName(),
+                    updatedUser.getEmail(),
+                    primaryRole,
+                    allRoles);
 
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
@@ -162,29 +176,13 @@ public class UserController {
      * @return Success message
      */
     @PutMapping("/profile/password")
-    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         Long userId = getCurrentUserId();
         logger.info("Changing password for user with ID: {}", userId);
 
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "User not authenticated"));
-        }
-
-        // Validate input
-        if (request.getCurrentPassword() == null || request.getCurrentPassword().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "Current password is required"));
-        }
-
-        if (request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "New password is required"));
-        }
-
-        if (request.getNewPassword().length() < 6) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "New password must be at least 6 characters long"));
         }
 
         try {
@@ -260,7 +258,9 @@ public class UserController {
         // Return only public information
         Map<String, Object> publicProfile = Map.of(
                 "id", user.getUserId(),
-                "name", user.getName(),
+                "firstName", user.getFirstName(),
+                "lastName", user.getLastName(),
+                "fullName", user.getName(),
                 "avatarURL", user.getAvatarURL() != null ? user.getAvatarURL() : "");
 
         return ResponseEntity.ok(publicProfile);
@@ -284,24 +284,28 @@ public class UserController {
 
         // Map to response objects without passwords
         List<AuthResponse> responses = users.stream().map(user -> {
-            AuthResponse response = new AuthResponse();
-            response.setId(user.getUserId());
-            response.setName(user.getName());
-            response.setEmail(user.getEmail());
-
-            if (!user.getRoles().isEmpty()) {
-                if (user.isAdmin()) {
-                    response.setRole("ADMIN");
-                } else if (user.isSeller()) {
-                    response.setRole("SELLER");
-                } else if (user.isCustomer()) {
-                    response.setRole("CUSTOMER");
-                } else {
-                    response.setRole(user.getRoles().iterator().next().getRoleName());
-                }
+            // Determine primary role
+            String primaryRole = "CUSTOMER";
+            if (user.isAdmin()) {
+                primaryRole = "ADMIN";
+            } else if (user.isSeller()) {
+                primaryRole = "SELLER";
+            } else if (user.isCustomer()) {
+                primaryRole = "CUSTOMER";
             }
 
-            return response;
+            // Get all roles
+            List<String> allRoles = user.getRoles().stream()
+                    .map(RoleEntity::getRoleName)
+                    .collect(Collectors.toList());
+
+            return new AuthResponse(
+                    user.getUserId(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    user.getEmail(),
+                    primaryRole,
+                    allRoles);
         }).toList();
 
         return ResponseEntity.ok(responses);
@@ -320,12 +324,17 @@ public class UserController {
         List<UserEntity> customers = userService.getAllCustomers();
 
         List<AuthResponse> responses = customers.stream().map(user -> {
-            AuthResponse response = new AuthResponse();
-            response.setId(user.getUserId());
-            response.setName(user.getName());
-            response.setEmail(user.getEmail());
-            response.setRole("CUSTOMER");
-            return response;
+            List<String> allRoles = user.getRoles().stream()
+                    .map(RoleEntity::getRoleName)
+                    .collect(Collectors.toList());
+
+            return new AuthResponse(
+                    user.getUserId(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    user.getEmail(),
+                    "CUSTOMER",
+                    allRoles);
         }).toList();
 
         return ResponseEntity.ok(responses);
@@ -344,12 +353,17 @@ public class UserController {
         List<UserEntity> sellers = userService.getAllSellers();
 
         List<AuthResponse> responses = sellers.stream().map(user -> {
-            AuthResponse response = new AuthResponse();
-            response.setId(user.getUserId());
-            response.setName(user.getName());
-            response.setEmail(user.getEmail());
-            response.setRole("SELLER");
-            return response;
+            List<String> allRoles = user.getRoles().stream()
+                    .map(RoleEntity::getRoleName)
+                    .collect(Collectors.toList());
+
+            return new AuthResponse(
+                    user.getUserId(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    user.getEmail(),
+                    "SELLER",
+                    allRoles);
         }).toList();
 
         return ResponseEntity.ok(responses);
@@ -366,7 +380,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateUserById(
             @PathVariable Long id,
-            @RequestBody UpdateProfileRequest updateRequest) {
+            @Valid @RequestBody UpdateProfileRequest updateRequest) {
         logger.info("Admin updating user with ID: {}", id);
 
         UserEntity user = userService.getUserById(id);
@@ -376,29 +390,34 @@ public class UserController {
         }
 
         try {
-            // Split name into first and last name
-            String[] nameParts = updateRequest.getName().split(" ", 2);
-            String firstName = nameParts[0];
-            String lastName = nameParts.length > 1 ? nameParts[1] : "";
+            UserEntity updatedUser = userService.updateProfile(
+                    id,
+                    updateRequest.getFirstName(),
+                    updateRequest.getLastName(),
+                    updateRequest.getEmail());
 
-            UserEntity updatedUser = userService.updateProfile(id, firstName, lastName, updateRequest.getEmail());
-
-            AuthResponse response = new AuthResponse();
-            response.setId(updatedUser.getUserId());
-            response.setName(updatedUser.getName());
-            response.setEmail(updatedUser.getEmail());
-
-            if (!updatedUser.getRoles().isEmpty()) {
-                if (updatedUser.isAdmin()) {
-                    response.setRole("ADMIN");
-                } else if (updatedUser.isSeller()) {
-                    response.setRole("SELLER");
-                } else if (updatedUser.isCustomer()) {
-                    response.setRole("CUSTOMER");
-                } else {
-                    response.setRole(updatedUser.getRoles().iterator().next().getRoleName());
-                }
+            // Determine primary role
+            String primaryRole = "CUSTOMER";
+            if (updatedUser.isAdmin()) {
+                primaryRole = "ADMIN";
+            } else if (updatedUser.isSeller()) {
+                primaryRole = "SELLER";
+            } else if (updatedUser.isCustomer()) {
+                primaryRole = "CUSTOMER";
             }
+
+            // Get all roles
+            List<String> allRoles = updatedUser.getRoles().stream()
+                    .map(RoleEntity::getRoleName)
+                    .collect(Collectors.toList());
+
+            AuthResponse response = new AuthResponse(
+                    updatedUser.getUserId(),
+                    updatedUser.getFirstName(),
+                    updatedUser.getLastName(),
+                    updatedUser.getEmail(),
+                    primaryRole,
+                    allRoles);
 
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
@@ -457,22 +476,28 @@ public class UserController {
         try {
             UserEntity updatedUser = userService.addRoleToUser(id, roleName);
 
-            AuthResponse response = new AuthResponse();
-            response.setId(updatedUser.getUserId());
-            response.setName(updatedUser.getName());
-            response.setEmail(updatedUser.getEmail());
-
-            if (!updatedUser.getRoles().isEmpty()) {
-                if (updatedUser.isAdmin()) {
-                    response.setRole("ADMIN");
-                } else if (updatedUser.isSeller()) {
-                    response.setRole("SELLER");
-                } else if (updatedUser.isCustomer()) {
-                    response.setRole("CUSTOMER");
-                } else {
-                    response.setRole(updatedUser.getRoles().iterator().next().getRoleName());
-                }
+            // Determine primary role
+            String primaryRole = "CUSTOMER";
+            if (updatedUser.isAdmin()) {
+                primaryRole = "ADMIN";
+            } else if (updatedUser.isSeller()) {
+                primaryRole = "SELLER";
+            } else if (updatedUser.isCustomer()) {
+                primaryRole = "CUSTOMER";
             }
+
+            // Get all roles
+            List<String> allRoles = updatedUser.getRoles().stream()
+                    .map(RoleEntity::getRoleName)
+                    .collect(Collectors.toList());
+
+            AuthResponse response = new AuthResponse(
+                    updatedUser.getUserId(),
+                    updatedUser.getFirstName(),
+                    updatedUser.getLastName(),
+                    updatedUser.getEmail(),
+                    primaryRole,
+                    allRoles);
 
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
@@ -498,22 +523,28 @@ public class UserController {
         try {
             UserEntity updatedUser = userService.removeRoleFromUser(id, roleName);
 
-            AuthResponse response = new AuthResponse();
-            response.setId(updatedUser.getUserId());
-            response.setName(updatedUser.getName());
-            response.setEmail(updatedUser.getEmail());
-
-            if (!updatedUser.getRoles().isEmpty()) {
-                if (updatedUser.isAdmin()) {
-                    response.setRole("ADMIN");
-                } else if (updatedUser.isSeller()) {
-                    response.setRole("SELLER");
-                } else if (updatedUser.isCustomer()) {
-                    response.setRole("CUSTOMER");
-                } else {
-                    response.setRole(updatedUser.getRoles().iterator().next().getRoleName());
-                }
+            // Determine primary role
+            String primaryRole = "CUSTOMER";
+            if (updatedUser.isAdmin()) {
+                primaryRole = "ADMIN";
+            } else if (updatedUser.isSeller()) {
+                primaryRole = "SELLER";
+            } else if (updatedUser.isCustomer()) {
+                primaryRole = "CUSTOMER";
             }
+
+            // Get all roles
+            List<String> allRoles = updatedUser.getRoles().stream()
+                    .map(RoleEntity::getRoleName)
+                    .collect(Collectors.toList());
+
+            AuthResponse response = new AuthResponse(
+                    updatedUser.getUserId(),
+                    updatedUser.getFirstName(),
+                    updatedUser.getLastName(),
+                    updatedUser.getEmail(),
+                    primaryRole,
+                    allRoles);
 
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {

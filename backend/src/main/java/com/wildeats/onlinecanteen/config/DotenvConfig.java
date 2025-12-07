@@ -13,25 +13,33 @@ public class DotenvConfig implements ApplicationContextInitializer<ConfigurableA
 
     @Override
     public void initialize(ConfigurableApplicationContext applicationContext) {
-        // Load .env file from the project root (backend directory)
-        Dotenv dotenv = Dotenv.configure()
-                .directory("./") // Current directory (backend folder)
-                .ignoreIfMissing()
-                .load();
+        try {
+            // Load .env file from the project root (backend directory)
+            Dotenv dotenv = Dotenv.configure()
+                    .directory("./") // Current directory (backend folder)
+                    .ignoreIfMissing() // Don't fail if .env is missing (e.g., in production)
+                    .load();
 
-        ConfigurableEnvironment environment = applicationContext.getEnvironment();
-        Map<String, Object> envMap = new HashMap<>();
+            ConfigurableEnvironment environment = applicationContext.getEnvironment();
+            Map<String, Object> envMap = new HashMap<>();
 
-        // Add all environment variables from .env to Spring environment
-        dotenv.entries().forEach(entry -> {
-            envMap.put(entry.getKey(), entry.getValue());
-            System.out.println("Loaded env variable: " + entry.getKey() + "=" + entry.getValue());
-        });
+            // Add all environment variables from .env to Spring environment
+            dotenv.entries().forEach(entry -> {
+                envMap.put(entry.getKey(), entry.getValue());
+                if (!entry.getKey().contains("PASSWORD") && !entry.getKey().contains("SECRET")) {
+                    System.out.println("Loaded env variable: " + entry.getKey());
+                }
+            });
 
-        // Add the properties to Spring's environment with high priority
-        environment.getPropertySources()
-                .addFirst(new MapPropertySource("dotenvProperties", envMap));
+            // Add the properties to Spring's environment with high priority
+            environment.getPropertySources()
+                    .addFirst(new MapPropertySource("dotenvProperties", envMap));
 
-        System.out.println("DotenvConfig initialized successfully");
+            System.out.println("✓ Environment configuration loaded successfully");
+
+        } catch (Exception e) {
+            System.err.println("⚠ Warning: Could not load .env file - " + e.getMessage());
+            System.err.println("Attempting to use system environment variables...");
+        }
     }
 }
