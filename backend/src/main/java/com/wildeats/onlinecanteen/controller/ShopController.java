@@ -1,7 +1,11 @@
 package com.wildeats.onlinecanteen.controller;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -9,8 +13,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import com.wildeats.onlinecanteen.dto.ShopResponse;
 import com.wildeats.onlinecanteen.entity.ShopEntity;
 import com.wildeats.onlinecanteen.entity.UserEntity;
 import com.wildeats.onlinecanteen.service.ShopService;
@@ -19,7 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RestController
-@RequestMapping("/api/shop")
+@RequestMapping("/api/shops")
 @CrossOrigin(origins = { "http://localhost:3000", "http://127.0.0.1:3000" })
 public class ShopController {
     private static final Logger logger = LoggerFactory.getLogger(ShopController.class);
@@ -29,6 +36,20 @@ public class ShopController {
 
     @Autowired
     private UserService userService;
+
+    /**
+     * Global validation exception handler
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+    }
 
     /**
      * Helper method to get current user ID from JWT token
@@ -42,14 +63,47 @@ public class ShopController {
     }
 
     /**
-     * Get all shops (PUBLIC - no auth required)
+     * Get all operational shops (PUBLIC - no auth required)
      * 
-     * @return List of all active shops
+     * @return List of all operational shops (ACTIVE and open)
      */
     @GetMapping
-    public ResponseEntity<List<ShopEntity>> getAllShops() {
-        logger.info("GET request to fetch all shops");
-        return ResponseEntity.ok(shopService.getAllShops());
+    public ResponseEntity<?> getAllShops() {
+        logger.info("GET request to fetch all operational shops");
+        List<ShopEntity> shops = shopService.getAllOperationalShops();
+
+        // Convert to DTOs
+        List<ShopResponse> shopDTOs = shops.stream()
+                .map(ShopResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(shopDTOs);
+    }
+
+    /**
+     * Get all shops with a specific status (PUBLIC)
+     * 
+     * @param status The status to filter by
+     * @return List of shops with the specified status
+     */
+    @GetMapping("/status/{status}")
+    public ResponseEntity<?> getShopsByStatus(@PathVariable String status) {
+        logger.info("GET request to fetch shops with status: {}", status);
+
+        try {
+            ShopEntity.Status shopStatus = ShopEntity.Status.valueOf(status.toUpperCase());
+            List<ShopEntity> shops = shopService.getShopsByStatus(shopStatus);
+
+            // Convert to DTOs
+            List<ShopResponse> shopDTOs = shops.stream()
+                    .map(ShopResponse::new)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(shopDTOs);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Invalid status: " + status));
+        }
     }
 
     /**
@@ -61,22 +115,28 @@ public class ShopController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getShopById(@PathVariable Long id) {
         logger.info("GET request to fetch shop with ID: {}", id);
+
         ShopEntity shop = shopService.getShopById(id);
-        if (shop != null && shop.isActive()) {
-            return ResponseEntity.ok(shop);
+        if (shop != null && shop.getStatus() == ShopEntity.Status.ACTIVE) {
+            // Convert to DTO
+            ShopResponse shopDTO = new ShopResponse(shop);
+            return ResponseEntity.ok(shopDTO);
+        } else if (shop != null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Shop is not currently active"));
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Shop not found or inactive"));
+                    .body(Map.of("message", "Shop not found"));
         }
     }
 
     /**
-     * Get shops owned by the current user (REQUIRES AUTH + SELLER ROLE)
+     * Get shops owned by the current user
+     * Any authenticated user can check if they own shops
      * 
      * @return List of shops owned by the user
      */
     @GetMapping("/my-shops")
-    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<?> getMyShops() {
         Long userId = getCurrentUserId();
         logger.info("GET request to fetch shops for user with ID: {}", userId);
@@ -92,24 +152,26 @@ public class ShopController {
                     .body(Map.of("message", "User not found"));
         }
 
-        if (!user.isSeller()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "Only sellers can access their shops"));
-        }
-
         List<ShopEntity> shops = shopService.getShopsByOwnerId(userId);
-        return ResponseEntity.ok(shops);
+
+        // Convert to DTOs
+        List<ShopResponse> shopDTOs = shops.stream()
+                .map(ShopResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(shopDTOs);
     }
 
     /**
-     * Create a new shop (REQUIRES AUTH + SELLER ROLE)
+     * Create a new shop (CUSTOMER authenticated)
+     * Shop will be created with PENDING status
+     * After admin approves shop, user will receive SELLER role
      * 
      * @param shop The shop to create
      * @return The created shop
      */
     @PostMapping
-    @PreAuthorize("hasRole('SELLER')")
-    public ResponseEntity<?> createShop(@RequestBody ShopEntity shop) {
+    public ResponseEntity<?> createShop(@Valid @RequestBody ShopEntity shop) {
         Long userId = getCurrentUserId();
         logger.info("POST request to create a new shop from user with ID: {}", userId);
 
@@ -124,17 +186,25 @@ public class ShopController {
                     .body(Map.of("message", "User not found"));
         }
 
-        if (!user.isSeller()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "Only sellers can create shops"));
+        if (shop.getShopName() == null || shop.getShopName().trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Shop name is required"));
         }
 
         ShopEntity createdShop = shopService.createShop(shop, user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdShop);
+
+        // Convert to DTO
+        ShopResponse shopDTO = new ShopResponse(createdShop);
+
+        logger.info("Shop created with ID: {} and status: {}", createdShop.getShopId(), createdShop.getStatus());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "shop", shopDTO,
+                "message", "Shop application submitted. Awaiting admin approval."));
     }
 
     /**
-     * Update an existing shop (REQUIRES AUTH + SELLER ROLE + OWNERSHIP)
+     * Update an existing shop (SELLER only - must own the shop)
      * 
      * @param id   The shop ID
      * @param shop The updated shop data
@@ -144,7 +214,7 @@ public class ShopController {
     @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<?> updateShop(
             @PathVariable Long id,
-            @RequestBody ShopEntity shop) {
+            @Valid @RequestBody ShopEntity shop) {
         Long userId = getCurrentUserId();
         logger.info("PUT request to update shop with ID: {} from user with ID: {}", id, userId);
 
@@ -159,36 +229,80 @@ public class ShopController {
                     .body(Map.of("message", "User not found"));
         }
 
-        // Check if the shop exists
         ShopEntity existingShop = shopService.getShopById(id);
         if (existingShop == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "Shop not found"));
         }
 
-        // Check if the user is the owner of the shop
         if (!shopService.isShopOwnedByUser(userId, id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "You can only update your own shops"));
         }
 
-        // Update shop properties but keep the owner
         shop.setShopId(id);
         shop.setOwner(existingShop.getOwner());
-        shop.setActive(existingShop.isActive());
-        if (existingShop.getCreatedAt() != null) {
-            shop.setCreatedAt(existingShop.getCreatedAt());
+        shop.setStatus(existingShop.getStatus());
+        shop.setCreatedAt(existingShop.getCreatedAt());
+
+        if (shop.getShopName() == null) {
+            shop.setShopName(existingShop.getShopName());
         }
 
         ShopEntity updatedShop = shopService.updateShop(shop);
-        return ResponseEntity.ok(updatedShop);
+
+        // Convert to DTO
+        ShopResponse shopDTO = new ShopResponse(updatedShop);
+
+        return ResponseEntity.ok(shopDTO);
     }
 
     /**
-     * Delete a shop - soft delete (REQUIRES AUTH + SELLER ROLE + OWNERSHIP)
+     * Toggle shop open/closed status (SELLER only)
      * 
      * @param id The shop ID
-     * @return No content response
+     * @return The updated shop
+     */
+    @PutMapping("/{id}/toggle-status")
+    @PreAuthorize("hasRole('SELLER')")
+    public ResponseEntity<?> toggleShopStatus(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        logger.info("PUT request to toggle status for shop with ID: {} from user with ID: {}", id, userId);
+
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "User not authenticated"));
+        }
+
+        ShopEntity existingShop = shopService.getShopById(id);
+        if (existingShop == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Shop not found"));
+        }
+
+        if (!shopService.isShopOwnedByUser(userId, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "You can only toggle status for your own shops"));
+        }
+
+        try {
+            ShopEntity updatedShop = shopService.toggleShopOpenStatus(id);
+
+            // Convert to DTO
+            ShopResponse shopDTO = new ShopResponse(updatedShop);
+
+            return ResponseEntity.ok(shopDTO);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    /**
+     * Soft delete a shop (SELLER only)
+     * 
+     * @param id The shop ID
+     * @return Success message
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SELLER')")
@@ -199,12 +313,6 @@ public class ShopController {
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "User not authenticated"));
-        }
-
-        UserEntity user = userService.getUserById(userId);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "User not found"));
         }
 
         // Check if the shop exists
@@ -220,8 +328,128 @@ public class ShopController {
                     .body(Map.of("message", "You can only delete your own shops"));
         }
 
-        // Soft delete the shop
+        // Soft delete the shop (set status to CLOSED)
         shopService.softDeleteShop(id);
         return ResponseEntity.ok(Map.of("message", "Shop deleted successfully"));
+    }
+
+    // ============================================
+    // ADMIN ENDPOINTS
+    // ============================================
+
+    /**
+     * Get all shops (any status) - ADMIN only
+     * 
+     * @return List of all shops
+     */
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllShopsAdmin() {
+        logger.info("Admin fetching all shops");
+        List<ShopEntity> shops = shopService.getAllShops();
+
+        // Convert to DTOs
+        List<ShopResponse> shopDTOs = shops.stream()
+                .map(ShopResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(shopDTOs);
+    }
+
+    /**
+     * Approve a shop - ADMIN only
+     * Also grants SELLER role to the shop owner
+     * 
+     * @param id The shop ID
+     * @return The approved shop
+     */
+    @PutMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> approveShop(@PathVariable Long id) {
+        logger.info("Admin approving shop with ID: {}", id);
+
+        ShopEntity shop = shopService.getShopById(id);
+        if (shop == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Shop not found"));
+        }
+
+        try {
+            ShopEntity approvedShop = shopService.approveShop(id);
+
+            UserEntity owner = approvedShop.getOwner();
+            if (!owner.isSeller()) {
+                userService.addRoleToUser(owner.getUserId(), "SELLER");
+                logger.info("Granted SELLER role to user {} for approved shop {}",
+                        owner.getUserId(), id);
+            }
+
+            // Convert to DTO
+            ShopResponse shopDTO = new ShopResponse(approvedShop);
+
+            return ResponseEntity.ok(Map.of(
+                    "shop", shopDTO,
+                    "message", "Shop approved and owner granted seller privileges"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    /**
+     * Suspend a shop - ADMIN only
+     * 
+     * @param id The shop ID
+     * @return The suspended shop
+     */
+    @PutMapping("/{id}/suspend")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> suspendShop(@PathVariable Long id) {
+        logger.info("Admin suspending shop with ID: {}", id);
+
+        ShopEntity shop = shopService.getShopById(id);
+        if (shop == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Shop not found"));
+        }
+
+        try {
+            ShopEntity suspendedShop = shopService.suspendShop(id);
+
+            // Convert to DTO
+            ShopResponse shopDTO = new ShopResponse(suspendedShop);
+
+            return ResponseEntity.ok(shopDTO);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    /**
+     * Permanently close a shop - ADMIN only
+     * 
+     * @param id The shop ID
+     * @return The closed shop
+     */
+    @PutMapping("/{id}/close")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> closeShop(@PathVariable Long id) {
+        logger.info("Admin closing shop with ID: {}", id);
+
+        ShopEntity shop = shopService.getShopById(id);
+        if (shop == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Shop not found"));
+        }
+
+        try {
+            ShopEntity closedShop = shopService.closeShop(id);
+
+            return ResponseEntity.ok(closedShop);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
     }
 }

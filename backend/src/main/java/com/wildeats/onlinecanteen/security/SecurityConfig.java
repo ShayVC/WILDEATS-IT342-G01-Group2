@@ -19,115 +19,175 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
+/**
+ * Security Configuration for WILDEATS Online Canteen System
+ * 
+ * Architecture Alignment:
+ * Layer A (Identity): JWT authentication for USER table
+ * Layer B (Commerce): RBAC for SHOP/MENU_ITEM access
+ * Layer C (Transactions): Authorization for ORDER management
+ * 
+ * Security Principles:
+ * 1. Stateless JWT tokens (no server-side sessions)
+ * 2. Role-based access control (CUSTOMER, SELLER, ADMIN)
+ * 3. Rate limiting on auth endpoints
+ * 4. CORS configured for frontend origins
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+        @Autowired
+        private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Autowired
-    private CustomAccessDeniedHandler accessDeniedHandler;
+        @Autowired
+        private RateLimitingFilter rateLimitingFilter;
 
-    @Autowired
-    private CustomAuthenticationEntryPoint authenticationEntryPoint;
+        @Autowired
+        private CustomAccessDeniedHandler accessDeniedHandler;
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Autowired
+        private CustomAuthenticationEntryPoint authenticationEntryPoint;
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-            throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth
-                        // ============================================
-                        // PUBLIC ENDPOINTS (No Authentication Required)
-                        // ============================================
+        @Bean
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+                        throws Exception {
+                return authenticationConfiguration.getAuthenticationManager();
+        }
 
-                        // Auth endpoints
-                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/logout").permitAll()
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                .csrf(csrf -> csrf.disable())
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .authorizeHttpRequests(auth -> auth
+                                                // ============================================
+                                                // PUBLIC ENDPOINTS (No Authentication Required)
+                                                // ============================================
 
-                        // Test endpoints
-                        .requestMatchers("/api/test", "/api/canteen/test").permitAll()
+                                                // Auth endpoints - public
+                                                .requestMatchers(
+                                                                "/api/auth/login",
+                                                                "/api/auth/register",
+                                                                "/api/auth/logout",
+                                                                "/api/auth/verify-token",
+                                                                "/api/auth/refresh-token")
+                                                .permitAll()
 
-                        // Shop endpoints - public read access
-                        .requestMatchers("GET", "/api/shop", "/api/shop/*").permitAll()
+                                                // Test endpoints - public
+                                                .requestMatchers("/api/test", "/api/canteen/test").permitAll()
 
-                        // Food item endpoints - public read access
-                        .requestMatchers("GET", "/api/food/shop/*", "/api/food/*").permitAll()
+                                                // Shop endpoints - public read access
+                                                .requestMatchers("GET",
+                                                                "/api/shops",
+                                                                "/api/shops/*",
+                                                                "/api/shops/status/*")
+                                                .permitAll()
 
-                        // ============================================
-                        // AUTHENTICATED ENDPOINTS (Require JWT Token)
-                        // ============================================
+                                                // Menu item endpoints - public read access
+                                                .requestMatchers("GET",
+                                                                "/api/menu-items/shop/*",
+                                                                "/api/menu-items/shop/*/search",
+                                                                "/api/menu-items/shop/*/price",
+                                                                "/api/menu-items/shop/*/count",
+                                                                "/api/menu-items/*")
+                                                .permitAll()
 
-                        // Auth check endpoint
-                        .requestMatchers("/api/auth/check").authenticated()
+                                                // User profile viewing - public (limited info)
+                                                .requestMatchers("GET", "/api/users/*").permitAll()
 
-                        // User profile endpoints
-                        .requestMatchers("/api/users/profile", "/api/users/profile/**").authenticated()
+                                                // ============================================
+                                                // AUTHENTICATED ENDPOINTS (Require JWT Token)
+                                                // ============================================
 
-                        // Shop management (SELLER only, but checked in controller)
-                        .requestMatchers("POST", "/api/shop").authenticated()
-                        .requestMatchers("PUT", "/api/shop/*").authenticated()
-                        .requestMatchers("DELETE", "/api/shop/*").authenticated()
-                        .requestMatchers("/api/shop/my-shops").authenticated()
+                                                // Auth check endpoint
+                                                .requestMatchers("/api/auth/check").authenticated()
 
-                        // Food item management (SELLER only, but checked in controller)
-                        .requestMatchers("POST", "/api/food").authenticated()
-                        .requestMatchers("PUT", "/api/food/*", "/api/food/*/quantity").authenticated()
-                        .requestMatchers("DELETE", "/api/food/*").authenticated()
+                                                // User profile management (own profile only)
+                                                .requestMatchers(
+                                                                "/api/users/profile",
+                                                                "/api/users/profile/password")
+                                                .authenticated()
+                                                .requestMatchers("PUT", "/api/users/profile").authenticated()
+                                                .requestMatchers("DELETE", "/api/users/profile").authenticated()
 
-                        // Order endpoints (all require authentication)
-                        .requestMatchers("/api/orders/**").authenticated()
+                                                // Shop management (SELLER role checked in controller)
+                                                .requestMatchers("POST", "/api/shops").authenticated()
+                                                .requestMatchers("PUT",
+                                                                "/api/shops/*",
+                                                                "/api/shops/*/toggle-status")
+                                                .authenticated()
+                                                .requestMatchers("DELETE", "/api/shops/*").authenticated()
+                                                .requestMatchers("/api/shops/my-shops").authenticated()
 
-                        // Canteen order endpoints (if still in use)
-                        .requestMatchers("/api/canteen/**").authenticated()
+                                                // Menu item management (SELLER role checked in controller)
+                                                .requestMatchers("POST", "/api/menu-items").authenticated()
+                                                .requestMatchers("PUT",
+                                                                "/api/menu-items/*",
+                                                                "/api/menu-items/*/availability")
+                                                .authenticated()
+                                                .requestMatchers("DELETE", "/api/menu-items/*").authenticated()
 
-                        // ============================================
-                        // ADMIN ENDPOINTS (Temporarily blocked)
-                        // ============================================
-                        // These should be refactored to use @PreAuthorize("hasRole('ADMIN')")
+                                                // Order endpoints (role checked in controller)
+                                                .requestMatchers("/api/orders/**").authenticated()
 
-                        .requestMatchers("/api/users/getAllUsers").denyAll() // Insecure - block for now
-                        .requestMatchers("POST", "/api/users/createUser").denyAll() // Use /register instead
-                        .requestMatchers("GET", "/api/users/*").denyAll() // Insecure - should use /profile
-                        .requestMatchers("PUT", "/api/users/*").denyAll() // Insecure - should use /profile
-                        .requestMatchers("DELETE", "/api/users/*").denyAll() // Insecure - should use /profile
+                                                // ============================================
+                                                // ADMIN ENDPOINTS (Secured with @PreAuthorize)
+                                                // ============================================
+                                                // These are protected by @PreAuthorize("hasRole('ADMIN')") annotations
 
-                        // All other requests require authentication
-                        .anyRequest().authenticated())
-                .exceptionHandling(exception -> exception
-                        .accessDeniedHandler(accessDeniedHandler)
-                        .authenticationEntryPoint(authenticationEntryPoint))
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                                                .requestMatchers(
+                                                                "/api/users",
+                                                                "/api/users/customers",
+                                                                "/api/users/sellers")
+                                                .authenticated()
+                                                .requestMatchers("PUT", "/api/users/*/roles").authenticated()
+                                                .requestMatchers("DELETE", "/api/users/*/roles/*").authenticated()
+                                                .requestMatchers("POST", "/api/users/*/roles").authenticated()
 
-        return http.build();
-    }
+                                                .requestMatchers(
+                                                                "/api/shops/admin/all",
+                                                                "/api/shops/*/approve",
+                                                                "/api/shops/*/suspend",
+                                                                "/api/shops/*/close")
+                                                .authenticated()
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://127.0.0.1:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
+                                                // All other requests require authentication
+                                                .anyRequest().authenticated())
+                                .exceptionHandling(exception -> exception
+                                                .accessDeniedHandler(accessDeniedHandler)
+                                                .authenticationEntryPoint(authenticationEntryPoint))
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                // Add rate limiting filter BEFORE JWT filter
+                                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+                return http.build();
+        }
+
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOrigins(Arrays.asList(
+                                "http://localhost:3000",
+                                "http://127.0.0.1:3000",
+                                "http://localhost:8080",
+                                "http://127.0.0.1:8080"));
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+                configuration.setAllowedHeaders(Arrays.asList("*"));
+                configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+                configuration.setAllowCredentials(true);
+                configuration.setMaxAge(3600L);
+
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 }

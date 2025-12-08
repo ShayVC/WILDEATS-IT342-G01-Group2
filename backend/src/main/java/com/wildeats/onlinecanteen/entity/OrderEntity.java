@@ -1,21 +1,12 @@
 package com.wildeats.onlinecanteen.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.FetchType;
-
+import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "orders")
@@ -35,37 +26,67 @@ public class OrderEntity {
     private Long orderId;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "customer_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({ "roles", "password", "orders" })
     private UserEntity customer;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "shop_id", nullable = false)
+    @JsonIgnoreProperties({ "menuItems", "owner", "orders" })
     private ShopEntity shop;
 
-    @Column(nullable = false)
-    private Double totalAmount;
+    @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal totalAmount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private Status status = Status.PENDING;
 
-    @Column(length = 500)
-    private String notes;
+    @Column(name = "queue_number")
+    private Integer queueNumber;
+
+    @Column(name = "order_date_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date orderDateTime;
+
+    @Column(name = "cancelled_at")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date cancelledAt;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemEntity> orderItems = new ArrayList<>();
 
-    @Column(name = "created_at")
-    private java.util.Date createdAt;
-
-    @Column(name = "updated_at")
-    private java.util.Date updatedAt;
-
     public OrderEntity() {
-        this.createdAt = new java.util.Date();
-        this.updatedAt = new java.util.Date();
+        this.orderDateTime = new Date();
     }
 
+    // Helper methods
+    public void addOrderItem(OrderItemEntity item) {
+        orderItems.add(item);
+        item.setOrder(this);
+    }
+
+    public void removeOrderItem(OrderItemEntity item) {
+        orderItems.remove(item);
+        item.setOrder(null);
+    }
+
+    public void calculateTotalAmount() {
+        this.totalAmount = orderItems.stream()
+                .map(OrderItemEntity::getSubtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public void cancel(String reason) {
+        this.status = Status.CANCELLED;
+        this.cancelledAt = new Date();
+        this.cancellationReason = reason;
+    }
+
+    // Getters and Setters
     public Long getOrderId() {
         return orderId;
     }
@@ -90,11 +111,11 @@ public class OrderEntity {
         this.shop = shop;
     }
 
-    public Double getTotalAmount() {
+    public BigDecimal getTotalAmount() {
         return totalAmount;
     }
 
-    public void setTotalAmount(Double totalAmount) {
+    public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
     }
 
@@ -106,12 +127,45 @@ public class OrderEntity {
         this.status = status;
     }
 
-    public String getNotes() {
-        return notes;
+    public Integer getQueueNumber() {
+        return queueNumber;
     }
 
-    public void setNotes(String notes) {
-        this.notes = notes;
+    public void setQueueNumber(Integer queueNumber) {
+        this.queueNumber = queueNumber;
+    }
+
+    public Date getOrderDateTime() {
+        return orderDateTime;
+    }
+
+    public void setOrderDateTime(Date orderDateTime) {
+        this.orderDateTime = orderDateTime;
+    }
+
+    // Backward compatibility
+    public Date getCreatedAt() {
+        return orderDateTime;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.orderDateTime = createdAt;
+    }
+
+    public Date getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(Date cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
     }
 
     public List<OrderItemEntity> getOrderItems() {
@@ -120,49 +174,5 @@ public class OrderEntity {
 
     public void setOrderItems(List<OrderItemEntity> orderItems) {
         this.orderItems = orderItems;
-    }
-
-    public void addOrderItem(OrderItemEntity orderItem) {
-        orderItems.add(orderItem);
-        orderItem.setOrder(this);
-    }
-
-    public void removeOrderItem(OrderItemEntity orderItem) {
-        orderItems.remove(orderItem);
-        orderItem.setOrder(null);
-    }
-
-    public java.util.Date getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(java.util.Date createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public java.util.Date getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(java.util.Date updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    /**
-     * Update the updatedAt timestamp
-     */
-    public void updateTimestamp() {
-        this.updatedAt = new java.util.Date();
-    }
-
-    /**
-     * Calculate the total amount of the order based on the order items
-     */
-    public void calculateTotalAmount() {
-        double total = 0.0;
-        for (OrderItemEntity item : orderItems) {
-            total += item.getSubtotal();
-        }
-        this.totalAmount = total;
     }
 }
