@@ -1,50 +1,56 @@
 package com.wildeats.onlinecanteen.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.FetchType;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+
+import java.math.BigDecimal;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
-@Table(name = "order_items")
+@Table(name = "order_item")
 public class OrderItemEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "order_item_id")
-    private Long orderItemId;
+    @Column(name = "id")
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
+    @JsonIgnoreProperties({ "orderItems" })
     private OrderEntity order;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "food_item_id", nullable = false)
-    private FoodItemEntity foodItem;
+    @JoinColumn(name = "item_id", nullable = false)
+    @JsonIgnoreProperties({ "shop" })
+    private MenuItemEntity menuItem;
 
     @Column(nullable = false)
+    @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;
 
-    @Column(nullable = false)
-    private Double price;
-
-    @Column(nullable = false)
-    private Double subtotal;
+    @Column(name = "price_at_purchase", nullable = false, precision = 10, scale = 2)
+    private BigDecimal priceAtPurchase;
 
     public OrderItemEntity() {
     }
 
-    public Long getOrderItemId() {
-        return orderItemId;
+    // Helper method to calculate subtotal - NOW RETURNS BigDecimal
+    public BigDecimal getSubtotal() {
+        if (priceAtPurchase != null && quantity != null) {
+            return priceAtPurchase.multiply(BigDecimal.valueOf(quantity));
+        }
+        return BigDecimal.ZERO;
     }
 
-    public void setOrderItemId(Long orderItemId) {
-        this.orderItemId = orderItemId;
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public OrderEntity getOrder() {
@@ -55,16 +61,25 @@ public class OrderItemEntity {
         this.order = order;
     }
 
-    public FoodItemEntity getFoodItem() {
-        return foodItem;
+    public MenuItemEntity getMenuItem() {
+        return menuItem;
     }
 
-    public void setFoodItem(FoodItemEntity foodItem) {
-        this.foodItem = foodItem;
-        if (foodItem != null && this.price == null) {
-            this.price = foodItem.getPrice();
-            calculateSubtotal();
+    public void setMenuItem(MenuItemEntity menuItem) {
+        this.menuItem = menuItem;
+        // Automatically capture the current price
+        if (menuItem != null && this.priceAtPurchase == null) {
+            this.priceAtPurchase = menuItem.getPrice();
         }
+    }
+
+    // Backward compatibility
+    public MenuItemEntity getFoodItem() {
+        return menuItem;
+    }
+
+    public void setFoodItem(MenuItemEntity foodItem) {
+        setMenuItem(foodItem);
     }
 
     public Integer getQuantity() {
@@ -73,32 +88,22 @@ public class OrderItemEntity {
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
-        calculateSubtotal();
     }
 
-    public Double getPrice() {
-        return price;
+    public BigDecimal getPriceAtPurchase() {
+        return priceAtPurchase;
     }
 
-    public void setPrice(Double price) {
-        this.price = price;
-        calculateSubtotal();
+    public void setPriceAtPurchase(BigDecimal priceAtPurchase) {
+        this.priceAtPurchase = priceAtPurchase;
     }
 
-    public Double getSubtotal() {
-        return subtotal;
+    // Backward compatibility
+    public BigDecimal getPrice() {
+        return priceAtPurchase;
     }
 
-    public void setSubtotal(Double subtotal) {
-        this.subtotal = subtotal;
-    }
-
-    /**
-     * Calculate the subtotal based on price and quantity
-     */
-    private void calculateSubtotal() {
-        if (this.price != null && this.quantity != null) {
-            this.subtotal = this.price * this.quantity;
-        }
+    public void setPrice(BigDecimal price) {
+        this.priceAtPurchase = price;
     }
 }

@@ -1,74 +1,106 @@
 package com.wildeats.onlinecanteen.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "users")
 public class UserEntity {
-    
-    public enum Role {
-        CUSTOMER,
-        SELLER
-    }
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @Column(nullable = false, length = 100)
-    private String name;
-    
+    @Column(name = "user_id")
+    private Long userId;
+
     @Column(nullable = false, unique = true, length = 100)
     private String email;
-    
+
     @Column(nullable = false, length = 255)
     private String password;
-    
-    @Enumerated(EnumType.STRING)
-    private Role role;
-    
-    @Column(name = "is_active")
-    private boolean isActive = true;
-    
+
+    @Column(name = "first_name", length = 100)
+    private String firstName;
+
+    @Column(name = "last_name", length = 100)
+    private String lastName;
+
+    @Column(name = "avatar_url", length = 255)
+    private String avatarURL;
+
     @Column(name = "created_at")
-    private java.util.Date createdAt;
-    
-    @Column(name = "last_login")
-    private java.util.Date lastLogin;
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createdAt;
+
+    // Many-to-Many relationship with Role
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+    @JsonIgnoreProperties("users")
+    private Set<RoleEntity> roles = new HashSet<>();
 
     public UserEntity() {
-        this.createdAt = new java.util.Date();
+        this.createdAt = new Date();
     }
 
-    public UserEntity(String name, String email, String password, Role role) {
-        this.name = name;
+    public UserEntity(String email, String password, String firstName, String lastName) {
+        this();
         this.email = email;
         this.password = password;
-        this.role = role;
-        this.createdAt = new java.util.Date();
+        this.firstName = firstName;
+        this.lastName = lastName;
     }
 
+    // Helper methods
+    public boolean hasRole(String roleName) {
+        return roles.stream()
+                .anyMatch(role -> role.getRoleName().equalsIgnoreCase(roleName));
+    }
+
+    public boolean isCustomer() {
+        return hasRole("CUSTOMER");
+    }
+
+    public boolean isSeller() {
+        return hasRole("SELLER") || hasRole("SHOP_OWNER");
+    }
+
+    public boolean isAdmin() {
+        return hasRole("ADMIN");
+    }
+
+    public void addRole(RoleEntity role) {
+        this.roles.add(role);
+        role.getUsers().add(this);
+    }
+
+    public void removeRole(RoleEntity role) {
+        this.roles.remove(role);
+        role.getUsers().remove(this);
+    }
+
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
+    // Getters and Setters
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    // Backward compatibility - keep getId() for existing code
     public Long getId() {
-        return id;
+        return userId;
     }
 
     public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
+        this.userId = id;
     }
 
     public String getEmail() {
@@ -86,52 +118,55 @@ public class UserEntity {
     public void setPassword(String password) {
         this.password = password;
     }
-    
-    public Role getRole() {
-        return role;
+
+    public String getFirstName() {
+        return firstName;
     }
-    
-    public void setRole(Role role) {
-        this.role = role;
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
     }
-    
-    public boolean isActive() {
-        return isActive;
+
+    public String getLastName() {
+        return lastName;
     }
-    
-    public void setActive(boolean isActive) {
-        this.isActive = isActive;
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
-    
-    public java.util.Date getCreatedAt() {
+
+    // Backward compatibility for getName()
+    public String getName() {
+        return getFullName();
+    }
+
+    public void setName(String name) {
+        String[] parts = name.split(" ", 2);
+        this.firstName = parts[0];
+        this.lastName = parts.length > 1 ? parts[1] : "";
+    }
+
+    public String getAvatarURL() {
+        return avatarURL;
+    }
+
+    public void setAvatarURL(String avatarURL) {
+        this.avatarURL = avatarURL;
+    }
+
+    public Date getCreatedAt() {
         return createdAt;
     }
-    
-    public void setCreatedAt(java.util.Date createdAt) {
+
+    public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
     }
-    
-    public java.util.Date getLastLogin() {
-        return lastLogin;
+
+    public Set<RoleEntity> getRoles() {
+        return roles;
     }
-    
-    public void setLastLogin(java.util.Date lastLogin) {
-        this.lastLogin = lastLogin;
-    }
-    
-    /**
-     * Determine if the user is a seller based on their role
-     * @return true if the user is a seller, false otherwise
-     */
-    public boolean isSeller() {
-        return this.role == Role.SELLER;
-    }
-    
-    /**
-     * Determine if the user is a customer based on their role
-     * @return true if the user is a customer, false otherwise
-     */
-    public boolean isCustomer() {
-        return this.role == Role.CUSTOMER;
+
+    public void setRoles(Set<RoleEntity> roles) {
+        this.roles = roles;
     }
 }

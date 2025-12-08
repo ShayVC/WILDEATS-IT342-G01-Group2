@@ -1,98 +1,166 @@
 package com.wildeats.onlinecanteen.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.CascadeType;
+import jakarta.persistence.*;
+import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
-@Table(name = "shop_entity")
+@Table(name = "shop")
 public class ShopEntity {
+
+    public enum Status {
+        PENDING, // Waiting for admin approval
+        ACTIVE, // Approved and operational
+        SUSPENDED, // Temporarily disabled by admin
+        CLOSED // Permanently closed
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "shop_id")
     private Long shopId;
 
-    @Column(nullable = false, length = 100)
-    private String name;
+    @Column(name = "shop_name", nullable = false, length = 100)
+    private String shopName;
 
-    @Column(length = 200)
-    private String description;
+    @Column(name = "shop_descr", length = 500)
+    private String shopDescr;
 
-    @Column(length = 100)
-    private String location;
+    @Column(name = "shop_image_url", length = 255)
+    private String shopImageURL;
 
-    @Column(length = 20)
-    private String phone;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Status status = Status.PENDING;
 
-    @Column(length = 100)
-    private String email;
+    @Column(name = "is_open")
+    private Boolean isOpen = true;
 
-    @Column(length = 100)
-    private String openingHours;
-    
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "owner_id")
+    @JoinColumn(name = "owner_id", nullable = false)
+    @JsonIgnoreProperties({ "roles", "password", "shops", "orders" })
     private UserEntity owner;
-    
-    @Column(name = "is_active")
-    private boolean isActive = true;
-    
+
     @Column(name = "created_at")
-    private java.util.Date createdAt;
-    
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createdAt;
+
     @Column(name = "updated_at")
-    private java.util.Date updatedAt;
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date updatedAt;
 
     public ShopEntity() {
-        this.createdAt = new java.util.Date();
-        this.updatedAt = new java.util.Date();
+        this.createdAt = new Date();
+        this.updatedAt = new Date();
     }
 
-    public Long getShopId() { return shopId; }
-    public void setShopId(Long shopId) { this.shopId = shopId; }
+    // Helper methods
+    public boolean isOperational() {
+        return status == Status.ACTIVE && isOpen;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-
-    public String getLocation() { return location; }
-    public void setLocation(String location) { this.location = location; }
-
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public String getOpeningHours() { return openingHours; }
-    public void setOpeningHours(String openingHours) { this.openingHours = openingHours; }
-    
-    public UserEntity getOwner() { return owner; }
-    public void setOwner(UserEntity owner) { this.owner = owner; }
-    
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean isActive) { this.isActive = isActive; }
-    
-    public java.util.Date getCreatedAt() { return createdAt; }
-    public void setCreatedAt(java.util.Date createdAt) { this.createdAt = createdAt; }
-    
-    public java.util.Date getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(java.util.Date updatedAt) { this.updatedAt = updatedAt; }
-    
-    /**
-     * Update the updatedAt timestamp
-     */
     public void updateTimestamp() {
-        this.updatedAt = new java.util.Date();
+        this.updatedAt = new Date();
+    }
+
+    // Getters and Setters
+    public Long getShopId() {
+        return shopId;
+    }
+
+    public void setShopId(Long shopId) {
+        this.shopId = shopId;
+    }
+
+    public String getShopName() {
+        return shopName;
+    }
+
+    public void setShopName(String shopName) {
+        this.shopName = shopName;
+    }
+
+    // Backward compatibility
+    public String getName() {
+        return shopName;
+    }
+
+    public void setName(String name) {
+        this.shopName = name;
+    }
+
+    public String getShopDescr() {
+        return shopDescr;
+    }
+
+    public void setShopDescr(String shopDescr) {
+        this.shopDescr = shopDescr;
+    }
+
+    // Backward compatibility
+    public String getDescription() {
+        return shopDescr;
+    }
+
+    public void setDescription(String description) {
+        this.shopDescr = description;
+    }
+
+    public String getShopImageURL() {
+        return shopImageURL;
+    }
+
+    public void setShopImageURL(String shopImageURL) {
+        this.shopImageURL = shopImageURL;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    public Boolean getIsOpen() {
+        return isOpen;
+    }
+
+    public void setIsOpen(Boolean isOpen) {
+        this.isOpen = isOpen;
+    }
+
+    // Backward compatibility
+    public boolean isActive() {
+        return status == Status.ACTIVE;
+    }
+
+    public void setActive(boolean active) {
+        this.status = active ? Status.ACTIVE : Status.SUSPENDED;
+    }
+
+    public UserEntity getOwner() {
+        return owner;
+    }
+
+    public void setOwner(UserEntity owner) {
+        this.owner = owner;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Date getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Date updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }
