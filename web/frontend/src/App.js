@@ -34,6 +34,10 @@ import UsersPage from './pages/UsersPage';
 import UserDetailsPage from './pages/UserDetailsPage';
 import UserFormPage from './pages/UserFormPage';
 
+import AdminFormPage from "./pages/AdminFormPage";
+import AdminDetailsPage from "./pages/AdminDetailsPage";
+
+
 function App() {
   return (
     <Router>
@@ -51,12 +55,19 @@ function App() {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
+					
+
                     
                     {/* Protected routes (require authentication) */}
                     <Route element={<ProtectedRoute />}>
                       <Route path="/shops" element={<ShopsPage />} />
                       <Route path="/shops/:id" element={<ShopDetailsPage />} />
                       <Route path="/my-orders" element={<MyOrdersPage />} />
+					  
+					  {/* Admin routes */}
+					    <Route path="/admin/create" element={<AdminFormPage />} />
+					    <Route path="/admin/:id" element={<AdminDetailsPage />} />
+
                     </Route>
                     
                     {/* Seller-only routes */}
