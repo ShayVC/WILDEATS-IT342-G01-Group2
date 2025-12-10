@@ -22,6 +22,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { OrderProvider } from './contexts/OrderContext';
 import { ShopProvider } from './contexts/ShopContext';
 import { UserProvider } from './contexts/UserContext';
+import { AdminProvider } from './contexts/AdminContext';
 
 // Import global styles
 import GlobalStyles from './styles/GlobalStyles';
@@ -33,7 +34,6 @@ import ShopFormPage from './pages/ShopFormPage';
 import UsersPage from './pages/UsersPage';
 import UserDetailsPage from './pages/UserDetailsPage';
 import UserFormPage from './pages/UserFormPage';
-
 import AdminFormPage from "./pages/AdminFormPage";
 import AdminDetailsPage from "./pages/AdminDetailsPage";
 
@@ -67,6 +67,7 @@ function App() {
 					  {/* Admin routes */}
 					    <Route path="/admin/create" element={<AdminFormPage />} />
 					    <Route path="/admin/:id" element={<AdminDetailsPage />} />
+						<Route path="/admins/*" element={<AdminFormPage />} />
 
                     </Route>
                     
