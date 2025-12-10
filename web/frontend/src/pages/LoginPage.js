@@ -23,17 +23,51 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.email || !formData.password) {
       toast.error('Please enter both email and password');
       return;
     }
-    
+
     try {
       setLoading(true);
-      await login(formData.email, formData.password);
-      toast.success('Login successful!');
-      navigate('/');
+      const user = await login(formData.email, formData.password);
+
+      // Show success message with role
+      const roleDisplay = user?.role?.toUpperCase() || 'USER';
+      toast.success(`Welcome back! Logged in as ${roleDisplay}.`);
+
+      // Navigate to appropriate page based on role
+      if (user.roles?.includes('SELLER')) {
+        navigate('/my-shop');
+      } else if (user.roles?.includes('ADMIN')) {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Quick login helper for testing
+  const quickLogin = async (email, password) => {
+    setFormData({ email, password });
+    try {
+      setLoading(true);
+      const user = await login(email, password);
+      const roleDisplay = user?.role?.toUpperCase() || 'USER';
+      toast.success(`Welcome back! Logged in as ${roleDisplay}.`);
+
+      if (user.roles?.includes('SELLER')) {
+        navigate('/my-shop');
+      } else if (user.roles?.includes('ADMIN')) {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       toast.error(err.message || 'Login failed. Please try again.');
     } finally {
@@ -46,7 +80,7 @@ const LoginPage = () => {
       <FormCard>
         <FormHeader>Login to WildEats</FormHeader>
         {error && <ErrorMessage>{error}</ErrorMessage>}
-        
+
         <StyledForm onSubmit={handleSubmit}>
           <FormGroup>
             <Label htmlFor="email">Email</Label>
@@ -60,7 +94,7 @@ const LoginPage = () => {
               required
             />
           </FormGroup>
-          
+
           <FormGroup>
             <Label htmlFor="password">Password</Label>
             <Input
@@ -73,22 +107,15 @@ const LoginPage = () => {
               required
             />
           </FormGroup>
-          
+
           <SubmitButton type="submit" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
           </SubmitButton>
         </StyledForm>
-        
+
         <FormFooter>
           Don't have an account? <StyledLink to="/register">Register here</StyledLink>
         </FormFooter>
-        
-        <TestAccountsInfo>
-          <h4>Test Accounts:</h4>
-          <p>Seller: shop.owner@gmail.com / password</p>
-          <p>Customer: customer@gmail.com / password</p>
-          <p><strong>Note:</strong> All test accounts use the password: "password"</p>
-        </TestAccountsInfo>
       </FormCard>
     </Container>
   );
@@ -109,7 +136,7 @@ const FormCard = styled.div`
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   padding: 2.5rem;
   width: 100%;
-  max-width: 450px;
+  max-width: 550px;
 `;
 
 const FormHeader = styled.h1`
@@ -195,23 +222,6 @@ const ErrorMessage = styled.div`
   border-radius: 4px;
   margin-bottom: 1.5rem;
   text-align: center;
-`;
-
-const TestAccountsInfo = styled.div`
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid #eee;
-  font-size: 0.9rem;
-  color: #666;
-  
-  h4 {
-    margin-bottom: 0.5rem;
-    color: #333;
-  }
-  
-  p {
-    margin: 0.25rem 0;
-  }
 `;
 
 export default LoginPage;

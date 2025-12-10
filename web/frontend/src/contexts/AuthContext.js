@@ -1,5 +1,6 @@
+// web/frontend/src/contexts/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { login as apiLogin, register as apiRegister } from '../utils/authService';
+import { login as apiLogin, register as apiRegister, logout as apiLogout } from '../utils/authService';
 import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
@@ -11,24 +12,35 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load user from localStorage
+  // Load user from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem('currentUser');
     if (stored) {
-      setCurrentUser(JSON.parse(stored));
+      try {
+        const user = JSON.parse(stored);
+        setCurrentUser(user);
+      } catch (err) {
+        console.error('Error parsing stored user data:', err);
+        localStorage.removeItem('currentUser');
+      }
     }
     setLoading(false);
   }, []);
 
-  // Utility: email starts with "shop." means seller
-  const isSellerEmail = (email) => email?.startsWith('shop.');
-
   // Normalizes the backend response into a flat object
   const normalizeUser = (data) => {
+    // Backend returns: { token: "...", user: { id, firstName, lastName, email, role, roles } }
+    const user = data.user || data;
+
     return {
-      ...data.user,                     // id, name, email, role
-      token: data.token,                // JWT token
-      role: data.user.role.toLowerCase(), // CUSTOMER → customer
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      name: `${user.firstName} ${user.lastName}`, // Full name for convenience
+      email: user.email,
+      role: user.role.toLowerCase(), // Primary role (CUSTOMER, SELLER, ADMIN)
+      roles: user.roles || [user.role], // All roles array
+      token: data.token,
     };
   };
 
@@ -47,7 +59,7 @@ export const AuthProvider = ({ children }) => {
       // Flatten the structure
       const normalized = normalizeUser(userData);
 
-      // Save
+      // Save to localStorage
       localStorage.setItem("currentUser", JSON.stringify(normalized));
       setCurrentUser(normalized);
 
@@ -61,24 +73,25 @@ export const AuthProvider = ({ children }) => {
   };
 
   // REGISTER
-  const register = async (name, email, password, confirmPassword) => {
+  const register = async (firstName, lastName, email, password, confirmPassword) => {
     try {
       setLoading(true);
       setError(null);
 
-      if (!name || !email || !password) {
-        throw new Error("Name, email, and password are required");
+      if (!firstName || !lastName || !email || !password) {
+        throw new Error("All fields are required");
       }
 
       if (password !== confirmPassword) {
         throw new Error("Passwords do not match");
       }
 
-      const userData = await apiRegister(name, email, password, confirmPassword);
+      const userData = await apiRegister(firstName, lastName, email, password, confirmPassword);
 
       // Backend should return the same structure { user, token }
       const normalized = normalizeUser(userData);
 
+      // Save to localStorage
       localStorage.setItem("currentUser", JSON.stringify(normalized));
       setCurrentUser(normalized);
 
@@ -92,10 +105,31 @@ export const AuthProvider = ({ children }) => {
   };
 
   // LOGOUT
-  const logout = () => {
-    localStorage.removeItem('currentUser');
-    setCurrentUser(null);
-    toast.info("You have been logged out");
+  const logout = async () => {
+    try {
+      await apiLogout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      localStorage.removeItem('currentUser');
+      setCurrentUser(null);
+      toast.info("You have been logged out");
+    }
+  };
+
+  // Helper function to check if user has a specific role
+  const hasRole = (roleName) => {
+    if (!currentUser) return false;
+
+    // Check in roles array (case-insensitive)
+    if (currentUser.roles) {
+      return currentUser.roles.some(
+        role => role.toLowerCase() === roleName.toLowerCase()
+      );
+    }
+
+    // Fallback to primary role
+    return currentUser.role?.toLowerCase() === roleName.toLowerCase();
   };
 
   // Values available to the whole app
@@ -107,10 +141,16 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
 
-    // Role helpers
+    // Authentication state
     isAuthenticated: !!currentUser,
-    isCustomer: currentUser?.role === "customer",
-    isSeller: currentUser?.role === "seller" || isSellerEmail(currentUser?.email),
+
+    // Role helpers
+    isCustomer: hasRole('CUSTOMER'),
+    isSeller: hasRole('SELLER'),
+    isAdmin: hasRole('ADMIN'),
+
+    // Utility function
+    hasRole,
   };
 
   return (

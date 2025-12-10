@@ -1,3 +1,4 @@
+// web/frontend/src/pages/RegisterPage.js
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -6,9 +7,10 @@ import styled from 'styled-components';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { register, error, isSeller } = useAuth();
+  const { register, error } = useAuth();
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -25,52 +27,61 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
-    if (!formData.name || !formData.email || !formData.password) {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
       toast.error('All fields are required');
       return;
     }
-    
+
     // Check if passwords match before submitting
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
-    
+
+    // Password strength validation (optional)
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
     try {
       setLoading(true);
       toast.info('Creating your account...', { autoClose: 2000 });
-      
+
       console.log('Submitting registration form with data:', {
-        name: formData.name,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         email: formData.email,
         password: '***', // Don't log actual password
         confirmPassword: '***' // Don't log actual password
       });
-      
-      // Pass all form data including confirmPassword
+
+      // Pass all form data to register function
       const user = await register(
-        formData.name, 
-        formData.email, 
-        formData.password, 
+        formData.firstName,
+        formData.lastName,
+        formData.email,
+        formData.password,
         formData.confirmPassword
       );
-      
+
       console.log('Registration successful, user data:', user);
-      
-      // Show role-specific success message
-      const role = user?.role || (isSeller(formData.email) ? 'seller' : 'customer');
-      toast.success(`Registration successful! You are registered as a ${role}.`);
-      
+
+      // Show success message with role information
+      const roleDisplay = user?.role?.toUpperCase() || 'USER';
+      toast.success(`Registration successful! Welcome as ${roleDisplay}.`);
+
       // Clear form data
       setFormData({
-        name: '',
+        firstName: '',
+        lastName: '',
         email: '',
         password: '',
         confirmPassword: ''
       });
-      
+
       // Navigate to home page after a short delay
       setTimeout(() => {
         navigate('/');
@@ -88,21 +99,36 @@ const RegisterPage = () => {
       <FormCard>
         <FormHeader>Create an Account</FormHeader>
         {error && <ErrorMessage>{error}</ErrorMessage>}
-        
+
         <StyledForm onSubmit={handleSubmit}>
-          <FormGroup>
-            <Label htmlFor="name">Full Name</Label>
-            <Input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Enter your full name"
-              required
-            />
-          </FormGroup>
-          
+          <FormRow>
+            <FormGroup>
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                placeholder="Enter your first name"
+                required
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                placeholder="Enter your last name"
+                required
+              />
+            </FormGroup>
+          </FormRow>
+
           <FormGroup>
             <Label htmlFor="email">Email</Label>
             <Input
@@ -114,12 +140,8 @@ const RegisterPage = () => {
               placeholder="Enter your email"
               required
             />
-            <HelpText>
-              Note: If you're registering as a seller, your email must start with "shop." 
-              (e.g., shop.yourname@example.com)
-            </HelpText>
           </FormGroup>
-          
+
           <FormGroup>
             <Label htmlFor="password">Password</Label>
             <Input
@@ -128,11 +150,12 @@ const RegisterPage = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Create a password"
+              placeholder="Create a password (min. 6 characters)"
+              minLength="6"
               required
             />
           </FormGroup>
-          
+
           <FormGroup>
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <Input
@@ -145,12 +168,12 @@ const RegisterPage = () => {
               required
             />
           </FormGroup>
-          
+
           <SubmitButton type="submit" disabled={loading}>
             {loading ? 'Registering...' : 'Register'}
           </SubmitButton>
         </StyledForm>
-        
+
         <FormFooter>
           Already have an account? <StyledLink to="/login">Login here</StyledLink>
         </FormFooter>
@@ -174,7 +197,7 @@ const FormCard = styled.div`
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   padding: 2.5rem;
   width: 100%;
-  max-width: 450px;
+  max-width: 550px;
 `;
 
 const FormHeader = styled.h1`
@@ -188,6 +211,16 @@ const StyledForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+`;
+
+const FormRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const FormGroup = styled.div`

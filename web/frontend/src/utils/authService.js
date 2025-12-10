@@ -1,194 +1,206 @@
-import axios from "axios";
+// web/frontend/src/utils/authService.js
+import axios from 'axios';
 
-const API_URL = "http://localhost:8080/api/auth";
+// Base API URL - adjust according to your backend port
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
-// Base axios instance
-const api = axios.create({
-  baseURL: API_URL,
-  headers: { "Content-Type": "application/json" },
-});
-
-// Debug logs
-api.interceptors.request.use((config) => {
-  console.log("API →", config.method.toUpperCase(), config.baseURL + config.url);
-  return config;
-});
-
-api.interceptors.response.use(
-  (res) => {
-    console.log("API ←", res.status, res.data);
-    return res;
+// Create axios instance with default config
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
   },
-  (err) => {
-    console.error("API ERROR:", err.message);
-    if (err.response) {
-      console.error("Status:", err.response.status);
-      console.error("Data:", err.response.data);
+});
+
+// Add token to requests if it exists
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (user.token) {
+      config.headers.Authorization = `Bearer ${user.token}`;
     }
-    return Promise.reject(err);
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
 );
 
-/* ----------------------------------------------
-   FALLBACK MOCK MODE (Only when backend is offline)
------------------------------------------------- */
-let MOCK_USERS = [
-  {
-    id: 1,
-    name: "Shop Owner",
-    email: "shop.owner@gmail.com",
-    password: "password",
-    role: "SELLER",
-  },
-  {
-    id: 2,
-    name: "Customer User",
-    email: "customer@gmail.com",
-    password: "password",
-    role: "CUSTOMER",
-  },
-];
+// Handle response errors
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('currentUser');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
-// Load stored mock users
-const saved = localStorage.getItem("mockUsers");
-if (saved) {
-  try {
-    const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed)) MOCK_USERS = parsed;
-  } catch (_) {}
-}
-
-/* ----------------------------------------------
-   LOGIN
------------------------------------------------- */
+/**
+ * Login user with email and password
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<Object>} User data with token
+ */
 export const login = async (email, password) => {
   try {
-    console.log("Login → Backend", email);
+    const response = await axiosInstance.post('/auth/login', {
+      email,
+      password,
+    });
 
-    const body = { email, password };
+    // Backend returns: { token: "...", user: { id, firstName, lastName, email, role, roles } }
+    const { token, user } = response.data;
 
-    // BACKEND REQUEST
-    const response = await api.post("/login", body);
+    // Store token and user data
+    const userData = {
+      ...user,
+      token,
+      role: user.role.toLowerCase(), // Normalize role to lowercase
+    };
 
-    // Expected backend return shape:
-    // { user: {..}, token: "..." }
-    return response.data;
-  } catch (err) {
-    // If backend gives a specific error message:
-    if (err.response?.data?.message) {
-      throw new Error(err.response.data.message);
+    return userData;
+  } catch (error) {
+    console.error('Login error:', error);
+
+    // Handle specific error messages from backend
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
     }
 
-    // FALLBACK: BACKEND OFFLINE → Try mock login
-    if (!err.response) {
-      console.warn("Login fallback → Mock Mode");
-
-      const user = MOCK_USERS.find(
-        (u) => u.email === email && u.password === password
-      );
-
-      if (!user) throw new Error("Invalid email or password");
-
-      return {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-        token: "MOCK_TOKEN_" + user.id,
-      };
-    }
-
-    throw err;
+    throw new Error('Login failed. Please check your credentials and try again.');
   }
 };
 
-/* ----------------------------------------------
-   REGISTER
------------------------------------------------- */
-export const register = async (name, email, password, confirmPassword) => {
+/**
+ * Register new user
+ * @param {string} firstName - User's first name
+ * @param {string} lastName - User's last name
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @param {string} confirmPassword - Password confirmation
+ * @returns {Promise<Object>} User data with token
+ */
+export const register = async (firstName, lastName, email, password, confirmPassword) => {
   try {
+    // Validate passwords match on frontend
     if (password !== confirmPassword) {
-      throw new Error("Passwords do not match");
+      throw new Error('Passwords do not match');
     }
 
-    const body = { name, email, password };
+    const response = await axiosInstance.post('/auth/register', {
+      firstName,
+      lastName,
+      email,
+      password,
+      confirmPassword,
+    });
 
-    const response = await api.post("/register", body);
+    // Backend returns: { token: "...", user: { id, firstName, lastName, email, role, roles } }
+    const { token, user } = response.data;
 
-    // Expected backend return: { user, token }
-    return response.data;
-  } catch (err) {
-    if (err.response?.data?.message) {
-      throw new Error(err.response.data.message);
+    // Store token and user data
+    const userData = {
+      ...user,
+      token,
+      role: user.role.toLowerCase(), // Normalize role to lowercase
+    };
+
+    return userData;
+  } catch (error) {
+    console.error('Registration error:', error);
+
+    // Handle specific error messages from backend
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
     }
 
-    // FALLBACK: BACKEND OFFLINE → Mock Mode
-    if (!err.response) {
-      console.warn("Register fallback → Mock Mode");
-
-      if (MOCK_USERS.some((u) => u.email === email)) {
-        throw new Error("Email already in use");
+    // Handle validation errors
+    if (error.response?.data) {
+      const validationErrors = error.response.data;
+      if (typeof validationErrors === 'object' && !validationErrors.message) {
+        // If it's a validation error object, format it
+        const errorMessages = Object.values(validationErrors).join(', ');
+        throw new Error(errorMessages);
       }
-
-      const newUser = {
-        id: Math.floor(Math.random() * 9000),
-        name,
-        email,
-        password,
-        role: email.startsWith("shop.") ? "SELLER" : "CUSTOMER",
-      };
-
-      MOCK_USERS.push(newUser);
-      localStorage.setItem("mockUsers", JSON.stringify(MOCK_USERS));
-
-      return {
-        user: {
-          id: newUser.id,
-          name,
-          email,
-          role: newUser.role,
-        },
-        token: "MOCK_TOKEN_" + newUser.id,
-      };
     }
 
-    throw err;
+    throw new Error('Registration failed. Please try again.');
   }
 };
 
-/* ----------------------------------------------
-   CHECK AUTH
------------------------------------------------- */
+/**
+ * Logout user
+ */
+export const logout = async () => {
+  try {
+    await axiosInstance.post('/auth/logout');
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    // Always remove local data even if API call fails
+    localStorage.removeItem('currentUser');
+  }
+};
+
+/**
+ * Verify JWT token
+ * @param {string} token - JWT token to verify
+ * @returns {Promise<Object>} User data if token is valid
+ */
+export const verifyToken = async (token) => {
+  try {
+    const response = await axiosInstance.post('/auth/verify-token', {
+      token,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Token verification error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Refresh JWT token
+ * @param {string} token - Current JWT token
+ * @returns {Promise<string>} New JWT token
+ */
+export const refreshToken = async (token) => {
+  try {
+    const response = await axiosInstance.post('/auth/refresh-token', {
+      token,
+    });
+
+    return response.data.token;
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Check authentication status
+ * @returns {Promise<Object>} Authentication status
+ */
 export const checkAuth = async () => {
   try {
-    const response = await api.get("/check");
+    const response = await axiosInstance.get('/auth/check');
     return response.data;
-  } catch {
-    throw new Error("Authentication check failed");
+  } catch (error) {
+    console.error('Auth check error:', error);
+    throw error;
   }
-};
-
-/* ----------------------------------------------
-   AUTH HEADER
------------------------------------------------- */
-export const getAuthHeader = () => {
-  const stored = localStorage.getItem("currentUser");
-  if (!stored) return {};
-
-  const user = JSON.parse(stored);
-
-  if (user?.token) {
-    return { Authorization: `Bearer ${user.token}` };
-  }
-
-  return {};
 };
 
 export default {
   login,
   register,
+  logout,
+  verifyToken,
+  refreshToken,
   checkAuth,
-  getAuthHeader,
 };
