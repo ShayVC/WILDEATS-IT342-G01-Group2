@@ -118,31 +118,43 @@ const HomePage = () => {
             </>
           ) : (
             // Customer options
-            <>
-              <FeatureCard to="/shops">
-                <FeatureIcon>
-                  <FiShoppingCart />
-                </FeatureIcon>
-                <FeatureTitle>Browse Shops</FeatureTitle>
-                <FeatureDescription>Explore all available canteen shops and their offerings</FeatureDescription>
-              </FeatureCard>
-              
-              <FeatureCard to="/orders">
-                <FeatureIcon>
-                  <FiList />
-                </FeatureIcon>
-                <FeatureTitle>View Orders</FeatureTitle>
-                <FeatureDescription>Check the status of your current and past orders</FeatureDescription>
-              </FeatureCard>
-              
-              <FeatureCard to="/shops">
-                <FeatureIcon>
-                  <FiPlusCircle />
-                </FeatureIcon>
-                <FeatureTitle>Place Order</FeatureTitle>
-                <FeatureDescription>Quickly place a new order from your favorite shops</FeatureDescription>
-              </FeatureCard>
-            </>
+			<>
+			  <Link to="/shops">
+			    <FeatureCard>
+			      <FeatureIcon>
+			        <FiShoppingCart />
+			      </FeatureIcon>
+			      <FeatureTitle>Browse Shops</FeatureTitle>
+			      <FeatureDescription>
+			        Explore all available canteen shops and their offerings
+			      </FeatureDescription>
+			    </FeatureCard>
+			  </Link>
+
+			  <Link to="/orders">
+			    <FeatureCard>
+			      <FeatureIcon>
+			        <FiList />
+			      </FeatureIcon>
+			      <FeatureTitle>View Orders</FeatureTitle>
+			      <FeatureDescription>
+			        Check the status of your current and past orders
+			      </FeatureDescription>
+			    </FeatureCard>
+			  </Link>
+
+			  <Link to="/shops">
+			    <FeatureCard>
+			      <FeatureIcon>
+			        <FiPlusCircle />
+			      </FeatureIcon>
+			      <FeatureTitle>Place Order</FeatureTitle>
+			      <FeatureDescription>
+			        Quickly place a new order from your favorite shops
+			      </FeatureDescription>
+			    </FeatureCard>
+			  </Link>
+			</>
           )}
         </FeaturesGrid>
       </FeaturesSection>
