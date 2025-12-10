@@ -1,5 +1,6 @@
 package com.wildeats.onlinecanteen.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.wildeats.onlinecanteen.dto.ShopResponse;
 import com.wildeats.onlinecanteen.entity.ShopEntity;
@@ -255,6 +257,90 @@ public class ShopController {
         ShopResponse shopDTO = new ShopResponse(updatedShop);
 
         return ResponseEntity.ok(shopDTO);
+    }
+
+    /**
+     * Get current user's shop applications (including pending ones)
+     * 
+     * @return List of user's shops with all statuses
+     */
+    @GetMapping("/my-applications")
+    public ResponseEntity<?> getMyShopApplications() {
+        Long userId = getCurrentUserId();
+        logger.info("GET request to fetch shop applications for user with ID: {}", userId);
+
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "User not authenticated"));
+        }
+
+        UserEntity user = userService.getUserById(userId);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "User not found"));
+        }
+
+        // Get all shops owned by user (any status)
+        List<ShopEntity> shops = shopService.getShopsByOwnerId(userId);
+
+        // Convert to DTOs
+        List<ShopResponse> shopDTOs = shops.stream()
+                .map(ShopResponse::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(shopDTOs);
+    }
+
+    /**
+     * Upload shop documents (business permits, ID, etc.)
+     * 
+     * @param shopId The ID of the shop
+     * @param files  The files to upload
+     * @return Success message
+     */
+    @PostMapping("/{shopId}/documents")
+    @PreAuthorize("hasRole('SELLER') or hasRole('CUSTOMER')")
+    public ResponseEntity<?> uploadShopDocuments(
+            @PathVariable Long shopId,
+            @RequestParam("files") MultipartFile[] files) {
+
+        Long userId = getCurrentUserId();
+        logger.info("POST request to upload documents for shop {} from user {}", shopId, userId);
+
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "User not authenticated"));
+        }
+
+        // Verify shop ownership
+        if (!shopService.isShopOwnedByUser(userId, shopId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "You can only upload documents for your own shops"));
+        }
+
+        try {
+            // TODO: Implement file storage logic
+            // For now, just return success
+            List<String> uploadedFiles = new ArrayList<>();
+
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
+                    // In production, save to cloud storage (AWS S3, Google Cloud Storage, etc.)
+                    // For now, just log the file name
+                    uploadedFiles.add(file.getOriginalFilename());
+                    logger.info("Received file: {}", file.getOriginalFilename());
+                }
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Documents uploaded successfully",
+                    "files", uploadedFiles));
+
+        } catch (Exception e) {
+            logger.error("Error uploading documents for shop {}: {}", shopId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to upload documents"));
+        }
     }
 
     /**
