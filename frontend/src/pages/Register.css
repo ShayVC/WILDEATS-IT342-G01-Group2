@@ -1,0 +1,112 @@
+.register-wrapper {
+  background: var(--white);
+  border-radius: 20px;
+  display: flex;
+  width: 100%;
+  max-width: 900px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.register-left {
+  flex: 1;
+  background: linear-gradient(135deg, #F8E8E8 0%, #F0D8D8 100%);
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.register-logo-section {
+  text-align: center;
+}
+
+.register-logo-large {
+  width: 300px;
+  height: 300px;
+  background-image: url('../assets/WildEatsLogo.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.register-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.social-section {
+  width: 100%;
+  max-width: 300px;
+}
+
+.register-right {
+  flex: 1;
+  padding: 3rem 2.5rem;
+  background: var(--white);
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  height: 100%;
+  justify-content: center;
+}
+
+/* Responsive Design for Register */
+@media (max-width: 968px) {
+  .register-wrapper {
+    flex-direction: column;
+    max-width: 500px;
+  }
+
+  .register-left {
+    padding: 2rem;
+  }
+
+  .register-logo-large {
+    width: 140px;
+    height: 140px;
+  }
+
+  .register-title {
+    font-size: 1.75rem;
+  }
+
+  .register-right {
+    padding: 2rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-wrapper {
+    border-radius: 12px;
+  }
+
+  .register-left {
+    padding: 1.5rem 1rem;
+  }
+
+  .register-logo-large {
+    width: 120px;
+    height: 120px;
+  }
+
+  .register-title {
+    font-size: 1.5rem;
+  }
+
+  .register-right {
+    padding: 1.5rem 1rem;
+  }
+
+  .register-form {
+    gap: 1rem;
+  }
+}
