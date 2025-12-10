@@ -14,7 +14,7 @@
   padding: 3rem 1.5rem;
   background-color: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   margin: 2rem 1rem;
 }
@@ -30,21 +30,21 @@
 .hero-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: var(--primary);
+  color: #800020;
   margin-bottom: 1rem;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .hero-subtitle {
   font-size: 1.1rem;
-  color: var(--text-dark);
+  color: #333;
   margin-bottom: 2rem;
   max-width: 500px;
 }
 
 .hero-description {
   font-size: 1rem;
-  color: var(--text-secondary);
+  color: #666;
   margin-bottom: 2rem;
   max-width: 600px;
   line-height: 1.6;
@@ -54,10 +54,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: var(--primary);
-  color: var(--white);
+  background-color: #800020;
+  color: white;
   padding: 0.75rem 1.5rem;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   font-weight: 500;
   transition: all 0.3s ease;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
@@ -65,7 +65,7 @@
 }
 
 .hero-cta:hover {
-  background-color: var(--primary-light);
+  background-color: #a03050;
   transform: translateY(-3px);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
@@ -77,7 +77,7 @@
   gap: 15px;
   width: 100%;
   max-width: 500px;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
@@ -89,7 +89,7 @@
 }
 
 .hero-image-item {
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   overflow: hidden;
   height: 150px;
 }
@@ -118,14 +118,14 @@
   background-color: rgba(245, 245, 245, 0.7);
   backdrop-filter: blur(10px);
   margin: 2rem 1rem;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .section-title {
   font-size: 2rem;
   text-align: center;
-  color: var(--text-dark);
+  color: #333;
   margin-bottom: 3rem;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: relative;
@@ -139,7 +139,7 @@
   transform: translateX(-50%);
   width: 60px;
   height: 3px;
-  background-color: var(--primary);
+  background-color: #800020;
   border-radius: 3px;
 }
 
@@ -159,7 +159,7 @@
 .feature-card {
   background-color: rgba(255, 255, 255, 0.8);
   padding: 2rem 2rem 0;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
@@ -186,17 +186,17 @@
   margin-bottom: 1.5rem;
   font-size: 1.75rem;
   background-color: rgba(128, 0, 32, 0.1);
-  color: var(--primary);
+  color: #800020;
 }
 
 .feature-title {
   font-size: 1.25rem;
   margin-bottom: 0.75rem;
-  color: var(--text-dark);
+  color: #333;
 }
 
 .feature-description {
-  color: var(--text-dark);
+  color: #333;
   font-size: 0.9rem;
   line-height: 1.5;
   margin-bottom: 1.5rem;
@@ -205,11 +205,11 @@
 /* Call to Action Section */
 .cta-section {
   padding: 4rem 1.5rem;
-  background-color: rgba(var(--primary-rgb), 0.85);
-  color: var(--white);
+  background-color: rgba(128, 0, 32, 0.85);
+  color: white;
   backdrop-filter: blur(10px);
   margin: 2rem 1rem;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
@@ -226,7 +226,7 @@
   width: 100%;
   max-width: 300px;
   margin-bottom: 2rem;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
@@ -249,7 +249,7 @@
 }
 
 .cta-description {
-  color: var(--gray);
+  color: #e0e0e0;
   font-size: 1.1rem;
   max-width: 500px;
   margin-bottom: 1.5rem;
@@ -257,10 +257,10 @@
 
 .cta-button {
   display: inline-block;
-  background-color: var(--white);
-  color: var(--primary);
+  background-color: white;
+  color: #800020;
   padding: 0.75rem 2rem;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   font-weight: 600;
   transition: all 0.3s ease;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
@@ -268,7 +268,7 @@
 }
 
 .cta-button:hover {
-  background-color: var(--light-gray);
+  background-color: #f5f5f5;
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
@@ -276,7 +276,7 @@
 /* Management Section */
 .management-section {
   padding: 4rem 1.5rem;
-  background-color: var(--bg-light);
+  background-color: #fafafa;
 }
 
 .management-grid {
@@ -291,12 +291,12 @@
 .management-card {
   display: flex;
   flex-direction: column;
-  background-color: var(--white);
-  border-radius: var(--border-radius);
+  background-color: white;
+  border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   padding: 2rem;
   text-decoration: none;
-  color: var(--text-dark);
+  color: #333;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -329,12 +329,12 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: var(--text-dark);
+  color: #333;
 }
 
 .management-description {
   font-size: 1rem;
-  color: var(--text-light);
+  color: #666;
   line-height: 1.5;
 }
 
