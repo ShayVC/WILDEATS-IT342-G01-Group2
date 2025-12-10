@@ -3,16 +3,14 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
-
-import AdminFormPage from './pages/AdminFormPage';
-
+import { useAdmins } from '../contexts/AdminContext'; // <-- FIX REQUIRED
 
 const AdminFormPage = () => {
   const { admins, loading, error, refreshAdmins, removeAdmin } = useAdmins();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { currentUser } = useAuth();
-  const isSuperAdmin = currentUser?.role === 'superadmin'; 
+  const isSuperAdmin = currentUser?.role === 'superadmin';
   
 
   const handleDelete = async (id) => {
