@@ -11,6 +11,9 @@ public class ShopResponse {
     private Long shopId;
     private String shopName;
     private String shopDescr;
+    private String shopAddress;
+    private String location;
+    private String contactNumber;
     private String shopImageURL;
     private String status;
     private Boolean isOpen;
@@ -29,6 +32,9 @@ public class ShopResponse {
         this.shopId = shop.getShopId();
         this.shopName = shop.getShopName();
         this.shopDescr = shop.getShopDescr();
+        this.shopAddress = shop.getShopAddress();
+        this.location = shop.getLocation() != null ? shop.getLocation().getDisplayName() : null;
+        this.contactNumber = shop.getContactNumber();
         this.shopImageURL = shop.getShopImageURL();
         this.status = shop.getStatus().toString();
         this.isOpen = shop.getIsOpen();
@@ -66,6 +72,30 @@ public class ShopResponse {
 
     public void setShopDescr(String shopDescr) {
         this.shopDescr = shopDescr;
+    }
+
+    public String getShopAddress() {
+        return shopAddress;
+    }
+
+    public void setShopAddress(String shopAddress) {
+        this.shopAddress = shopAddress;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getContactNumber() {
+        return contactNumber;
+    }
+
+    public void setContactNumber(String contactNumber) {
+        this.contactNumber = contactNumber;
     }
 
     public String getShopImageURL() {

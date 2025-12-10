@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import HomePage from './pages/HomePage.jsx';
 import LoginPage from './pages/Login.jsx';
 import RegisterPage from './pages/Register.jsx';
+import SellerRegister from './pages/SellerRegister.jsx';
 
 // Import components
 import Navbar from './components/NavBar.jsx';
@@ -39,6 +40,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/shop-register" element={<SellerRegister />} />
 
               {/* Placeholder routes for pages that don't exist yet */}
               <Route path="/shops" element={<PlaceholderPage pageName="Shops" />} />

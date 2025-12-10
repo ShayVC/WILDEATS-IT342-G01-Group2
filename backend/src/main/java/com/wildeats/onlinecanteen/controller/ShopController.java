@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.wildeats.onlinecanteen.dto.ShopResponse;
+import com.wildeats.onlinecanteen.dto.CreateShopRequest;
 import com.wildeats.onlinecanteen.entity.ShopEntity;
 import com.wildeats.onlinecanteen.entity.UserEntity;
 import com.wildeats.onlinecanteen.service.ShopService;
@@ -169,11 +170,11 @@ public class ShopController {
      * Shop will be created with PENDING status
      * After admin approves shop, user will receive SELLER role
      * 
-     * @param shop The shop to create
+     * @param request The shop creation request with all required fields
      * @return The created shop
      */
     @PostMapping
-    public ResponseEntity<?> createShop(@Valid @RequestBody ShopEntity shop) {
+    public ResponseEntity<?> createShop(@Valid @RequestBody CreateShopRequest request) {
         Long userId = getCurrentUserId();
         logger.info("POST request to create a new shop from user with ID: {}", userId);
 
@@ -188,21 +189,43 @@ public class ShopController {
                     .body(Map.of("message", "User not found"));
         }
 
-        if (shop.getShopName() == null || shop.getShopName().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "Shop name is required"));
+        try {
+            // Validate location enum
+            ShopEntity.Location location;
+            try {
+                location = ShopEntity.Location.fromDisplayName(request.getLocation());
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message",
+                                "Invalid location. Must be one of: JHS Canteen, Main Canteen, Preschool Canteen, Frontgate, Backgate"));
+            }
+
+            // Create shop entity
+            ShopEntity shop = new ShopEntity();
+            shop.setShopName(request.getShopName().trim());
+            shop.setShopDescr(request.getShopDescr().trim());
+            shop.setShopAddress(request.getShopAddress().trim());
+            shop.setLocation(location);
+            shop.setContactNumber(request.getContactNumber().trim());
+            shop.setStatus(ShopEntity.Status.PENDING);
+            shop.setIsOpen(false);
+            shop.setOwner(user);
+
+            ShopEntity createdShop = shopService.createShop(shop);
+
+            // Convert to DTO
+            ShopResponse shopDTO = new ShopResponse(createdShop);
+
+            logger.info("Shop created with ID: {} and status: {}", createdShop.getShopId(), createdShop.getStatus());
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                    "shop", shopDTO,
+                    "message", "Shop application submitted successfully! Awaiting admin approval."));
+        } catch (Exception e) {
+            logger.error("Error creating shop: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to create shop: " + e.getMessage()));
         }
-
-        ShopEntity createdShop = shopService.createShop(shop, user);
-
-        // Convert to DTO
-        ShopResponse shopDTO = new ShopResponse(createdShop);
-
-        logger.info("Shop created with ID: {} and status: {}", createdShop.getShopId(), createdShop.getStatus());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "shop", shopDTO,
-                "message", "Shop application submitted. Awaiting admin approval."));
     }
 
     /**

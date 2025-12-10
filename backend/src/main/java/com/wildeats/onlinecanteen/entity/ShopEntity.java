@@ -16,6 +16,35 @@ public class ShopEntity {
         CLOSED // Permanently closed
     }
 
+    // Location enum matching frontend options
+    public enum Location {
+        JHS_CANTEEN("JHS Canteen"),
+        MAIN_CANTEEN("Main Canteen"),
+        PRESCHOOL_CANTEEN("Preschool Canteen"),
+        FRONTGATE("Frontgate"),
+        BACKGATE("Backgate");
+
+        private final String displayName;
+
+        Location(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        // Convert from display name to enum
+        public static Location fromDisplayName(String displayName) {
+            for (Location location : Location.values()) {
+                if (location.getDisplayName().equals(displayName)) {
+                    return location;
+                }
+            }
+            throw new IllegalArgumentException("Unknown location: " + displayName);
+        }
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "shop_id")
@@ -24,8 +53,18 @@ public class ShopEntity {
     @Column(name = "shop_name", nullable = false, length = 100)
     private String shopName;
 
-    @Column(name = "shop_descr", length = 500)
+    @Column(name = "shop_descr", nullable = false, length = 500)
     private String shopDescr;
+
+    @Column(name = "shop_address", nullable = false, length = 200)
+    private String shopAddress;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "location", nullable = false, length = 50)
+    private Location location;
+
+    @Column(name = "contact_number", nullable = false, length = 20)
+    private String contactNumber;
 
     @Column(name = "shop_image_url", length = 255)
     private String shopImageURL;
@@ -35,7 +74,7 @@ public class ShopEntity {
     private Status status = Status.PENDING;
 
     @Column(name = "is_open")
-    private Boolean isOpen = true;
+    private Boolean isOpen = false;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", nullable = false)
@@ -81,7 +120,6 @@ public class ShopEntity {
         this.shopName = shopName;
     }
 
-    // Backward compatibility
     public String getName() {
         return shopName;
     }
@@ -98,13 +136,36 @@ public class ShopEntity {
         this.shopDescr = shopDescr;
     }
 
-    // Backward compatibility
     public String getDescription() {
         return shopDescr;
     }
 
     public void setDescription(String description) {
         this.shopDescr = description;
+    }
+
+    public String getShopAddress() {
+        return shopAddress;
+    }
+
+    public void setShopAddress(String shopAddress) {
+        this.shopAddress = shopAddress;
+    }
+
+    public Location getLocation() {
+        return location;
+    }
+
+    public void setLocation(Location location) {
+        this.location = location;
+    }
+
+    public String getContactNumber() {
+        return contactNumber;
+    }
+
+    public void setContactNumber(String contactNumber) {
+        this.contactNumber = contactNumber;
     }
 
     public String getShopImageURL() {
@@ -131,7 +192,6 @@ public class ShopEntity {
         this.isOpen = isOpen;
     }
 
-    // Backward compatibility
     public boolean isActive() {
         return status == Status.ACTIVE;
     }
