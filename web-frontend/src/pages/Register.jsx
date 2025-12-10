@@ -1,38 +1,105 @@
+// web-frontend/src/pages/Register.jsx
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/authContext';
 import './Register.css';
 
 const Register = () => {
+    const navigate = useNavigate();
+    const { register } = useAuth();
+
     const [formData, setFormData] = useState({
-        name: '',
+        firstName: '',
+        lastName: '',
         email: '',
         password: '',
         confirmPassword: ''
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [errors, setErrors] = useState({});
 
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
         });
+        // Clear error for this field when user starts typing
+        if (errors[e.target.name]) {
+            setErrors({ ...errors, [e.target.name]: '' });
+        }
     };
 
-    const handleSubmit = (e) => {
+    const validateForm = () => {
+        const newErrors = {};
+
+        if (!formData.firstName.trim()) {
+            newErrors.firstName = 'First name is required';
+        }
+
+        if (!formData.lastName.trim()) {
+            newErrors.lastName = 'Last name is required';
+        }
+
+        if (!formData.email.trim()) {
+            newErrors.email = 'Email is required';
+        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+            newErrors.email = 'Email is invalid';
+        }
+
+        if (!formData.password) {
+            newErrors.password = 'Password is required';
+        } else if (formData.password.length < 6) {
+            newErrors.password = 'Password must be at least 6 characters';
+        }
+
+        if (!formData.confirmPassword) {
+            newErrors.confirmPassword = 'Please confirm your password';
+        } else if (formData.password !== formData.confirmPassword) {
+            newErrors.confirmPassword = 'Passwords do not match';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (formData.password !== formData.confirmPassword) {
-            alert('Passwords do not match!');
+        if (!validateForm()) {
             return;
         }
 
-        console.log('Register:', formData);
-        // Add your registration logic here
+        setIsLoading(true);
+
+        try {
+            const result = await register(
+                formData.firstName,
+                formData.lastName,
+                formData.email,
+                formData.password,
+                formData.confirmPassword
+            );
+
+            if (result.success) {
+                // Registration successful, redirect to customer shops page
+                navigate('/customer/shops');
+            } else {
+                // Show error message
+                setErrors({ general: result.error });
+            }
+        } catch (err) {
+            setErrors({ general: 'An unexpected error occurred. Please try again.' });
+            console.error('Registration error:', err);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleGoogleSignIn = () => {
         console.log('Google Sign In');
+        alert('Google Sign-In will be implemented soon!');
         // Add Google authentication logic here
     };
 
@@ -66,6 +133,7 @@ const Register = () => {
                                 type="button"
                                 className="btn-social"
                                 onClick={handleGoogleSignIn}
+                                disabled={isLoading}
                             >
                                 <svg className="google-icon" viewBox="0 0 24 24">
                                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -80,30 +148,44 @@ const Register = () => {
 
                     <div className="register-right">
                         <form onSubmit={handleSubmit} className="register-form">
+                            {errors.general && (
+                                <div className="error-message">
+                                    {errors.general}
+                                </div>
+                            )}
+
                             <div className="form-group">
-                                <label htmlFor="first-name">First Name</label>
+                                <label htmlFor="firstName">First Name</label>
                                 <input
                                     type="text"
-                                    id="first-name"
-                                    name="first-name"
+                                    id="firstName"
+                                    name="firstName"
                                     placeholder="Enter your first name"
-                                    value={formData.name}
+                                    value={formData.firstName}
                                     onChange={handleChange}
+                                    disabled={isLoading}
                                     required
                                 />
+                                {errors.firstName && (
+                                    <span className="field-error">{errors.firstName}</span>
+                                )}
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="last-name">Last Name</label>
+                                <label htmlFor="lastName">Last Name</label>
                                 <input
                                     type="text"
-                                    id="last-name"
-                                    name="last-name"
+                                    id="lastName"
+                                    name="lastName"
                                     placeholder="Enter your last name"
-                                    value={formData.name}
+                                    value={formData.lastName}
                                     onChange={handleChange}
+                                    disabled={isLoading}
                                     required
                                 />
+                                {errors.lastName && (
+                                    <span className="field-error">{errors.lastName}</span>
+                                )}
                             </div>
 
                             <div className="form-group">
@@ -115,8 +197,12 @@ const Register = () => {
                                     placeholder="Example@email.com"
                                     value={formData.email}
                                     onChange={handleChange}
+                                    disabled={isLoading}
                                     required
                                 />
+                                {errors.email && (
+                                    <span className="field-error">{errors.email}</span>
+                                )}
                             </div>
 
                             <div className="form-group">
@@ -129,6 +215,7 @@ const Register = () => {
                                         placeholder="Input your Password"
                                         value={formData.password}
                                         onChange={handleChange}
+                                        disabled={isLoading}
                                         required
                                     />
                                     <button
@@ -136,10 +223,14 @@ const Register = () => {
                                         className="password-toggle"
                                         onClick={() => setShowPassword(!showPassword)}
                                         aria-label="Toggle password visibility"
+                                        disabled={isLoading}
                                     >
                                         {showPassword ? '👁️' : '👁️‍🗨️'}
                                     </button>
                                 </div>
+                                {errors.password && (
+                                    <span className="field-error">{errors.password}</span>
+                                )}
                             </div>
 
                             <div className="form-group">
@@ -149,9 +240,10 @@ const Register = () => {
                                         type={showConfirmPassword ? "text" : "password"}
                                         id="confirmPassword"
                                         name="confirmPassword"
-                                        placeholder="Input your Password"
+                                        placeholder="Confirm your Password"
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
+                                        disabled={isLoading}
                                         required
                                     />
                                     <button
@@ -159,14 +251,22 @@ const Register = () => {
                                         className="password-toggle"
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                         aria-label="Toggle password visibility"
+                                        disabled={isLoading}
                                     >
                                         {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
                                     </button>
                                 </div>
+                                {errors.confirmPassword && (
+                                    <span className="field-error">{errors.confirmPassword}</span>
+                                )}
                             </div>
 
-                            <button type="submit" className="btn-primary">
-                                Register
+                            <button
+                                type="submit"
+                                className="btn-primary"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Registering...' : 'Register'}
                             </button>
                         </form>
                     </div>

@@ -1,29 +1,62 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/authContext';
 import './Login.css';
 
 const Login = () => {
+    const navigate = useNavigate();
+    const { login } = useAuth();
+
     const [formData, setFormData] = useState({
         email: '',
         password: ''
     });
     const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
         });
+        // Clear error when user starts typing
+        if (error) setError('');
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Login:', formData);
-        // Add your login logic here
+        setError('');
+        setIsLoading(true);
+
+        try {
+            const result = await login(formData.email, formData.password);
+
+            if (result.success) {
+                // Redirect based on user role
+                const userRole = result.user.role;
+
+                if (userRole === 'ADMIN') {
+                    navigate('/admin/dashboard');
+                } else if (userRole === 'SELLER') {
+                    navigate('/seller/dashboard');
+                } else {
+                    navigate('/customer/shops');
+                }
+            } else {
+                setError(result.error);
+            }
+        } catch (err) {
+            setError('An unexpected error occurred. Please try again.');
+            console.error('Login error:', err);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleGoogleSignIn = () => {
         console.log('Google Sign In');
+        alert('Google Sign-In will be implemented soon!');
         // Add Google authentication logic here
     };
 
@@ -52,6 +85,12 @@ const Login = () => {
                     </div>
 
                     <form onSubmit={handleSubmit} className="auth-form">
+                        {error && (
+                            <div className="error-message">
+                                {error}
+                            </div>
+                        )}
+
                         <div className="form-group">
                             <label htmlFor="email">Email</label>
                             <input
@@ -61,6 +100,7 @@ const Login = () => {
                                 placeholder="Example@email.com"
                                 value={formData.email}
                                 onChange={handleChange}
+                                disabled={isLoading}
                                 required
                             />
                         </div>
@@ -75,6 +115,7 @@ const Login = () => {
                                     placeholder="Input your Password"
                                     value={formData.password}
                                     onChange={handleChange}
+                                    disabled={isLoading}
                                     required
                                 />
                                 <button
@@ -82,6 +123,7 @@ const Login = () => {
                                     className="password-toggle"
                                     onClick={() => setShowPassword(!showPassword)}
                                     aria-label="Toggle password visibility"
+                                    disabled={isLoading}
                                 >
                                     {showPassword ? '👁️' : '👁️‍🗨️'}
                                 </button>
@@ -91,8 +133,12 @@ const Login = () => {
                             </Link>
                         </div>
 
-                        <button type="submit" className="btn-primary">
-                            Login
+                        <button
+                            type="submit"
+                            className="btn-primary"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? 'Logging in...' : 'Login'}
                         </button>
 
                         <div className="divider">
@@ -103,6 +149,7 @@ const Login = () => {
                             type="button"
                             className="btn-social"
                             onClick={handleGoogleSignIn}
+                            disabled={isLoading}
                         >
                             <svg className="google-icon" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
