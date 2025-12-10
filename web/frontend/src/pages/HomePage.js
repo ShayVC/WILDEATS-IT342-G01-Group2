@@ -176,7 +176,6 @@ const HomePage = () => {
         </CtaContainer>
       </CallToActionSection>
 
-      // NEW Block:
       {isAdmin && (
         <ManagementSection>
           <SectionTitle>Management Features</SectionTitle>

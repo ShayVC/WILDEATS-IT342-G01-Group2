@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiMenu, FiX, FiShoppingBag, FiHome, FiList, FiPlusCircle, FiShoppingCart, FiUsers, FiLogIn, FiLogOut, FiUserPlus, FiUser } from 'react-icons/fi';
+import { FiMenu, FiX, FiShoppingBag, FiHome, FiList, FiShoppingCart, FiUsers, FiLogIn, FiLogOut, FiUserPlus, FiUser } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {

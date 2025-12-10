@@ -22,7 +22,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { OrderProvider } from './contexts/OrderContext';
 import { ShopProvider } from './contexts/ShopContext';
 import { UserProvider } from './contexts/UserContext';
-import { AdminProvider } from './contexts/AdminContext';
+// import { AdminProvider } from './contexts/AdminContext';
 
 // Import global styles
 import GlobalStyles from './styles/GlobalStyles';
@@ -32,8 +32,8 @@ import ShopsPage from './pages/ShopsPage';
 import ShopDetailsPage from './pages/ShopDetailsPage';
 import ShopFormPage from './pages/ShopFormPage';
 import UsersPage from './pages/UsersPage';
-import UserDetailsPage from './pages/UserDetailsPage';
-import UserFormPage from './pages/UserFormPage';
+// import UserDetailsPage from './pages/UserDetailsPage';
+// import UserFormPage from './pages/UserFormPage';
 import AdminFormPage from "./pages/AdminFormPage";
 import AdminDetailsPage from "./pages/AdminDetailsPage";
 
