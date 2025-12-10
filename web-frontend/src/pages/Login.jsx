@@ -1,169 +1,107 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/authContext';
+import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import './Login.css';
 
-const Login = () => {
+const LoginPage = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
-
-    const [formData, setFormData] = useState({
-        email: '',
-        password: ''
-    });
-    const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    const { login, error } = useAuth();
+    const [formData, setFormData] = useState({ email: '', password: '' });
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
-        // Clear error when user starts typing
-        if (error) setError('');
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
-        setIsLoading(true);
+        if (!formData.email || !formData.password) {
+            toast.error('Please enter both email and password');
+            return;
+        }
 
         try {
-            const result = await login(formData.email, formData.password);
+            setLoading(true);
+            const user = await login(formData.email, formData.password);
 
-            if (result.success) {
-                // Redirect based on user role
-                const userRole = result.user.role;
+            const roleDisplay = user?.role?.toUpperCase() || 'USER';
+            toast.success(`Welcome back! Logged in as ${roleDisplay}.`);
 
-                if (userRole === 'ADMIN') {
-                    navigate('/admin/dashboard');
-                } else if (userRole === 'SELLER') {
-                    navigate('/seller/dashboard');
-                } else {
-                    navigate('/customer/shops');
-                }
-            } else {
-                setError(result.error);
-            }
+            if (user.roles?.includes('SELLER')) navigate('/my-shop');
+            else if (user.roles?.includes('ADMIN')) navigate('/admin');
+            else navigate('/');
         } catch (err) {
-            setError('An unexpected error occurred. Please try again.');
-            console.error('Login error:', err);
+            toast.error(err.message || 'Login failed. Please try again.');
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
-    const handleGoogleSignIn = () => {
-        console.log('Google Sign In');
-        alert('Google Sign-In will be implemented soon!');
-        // Add Google authentication logic here
+    // Quick login helper (optional)
+    const quickLogin = async (email, password) => {
+        setFormData({ email, password });
+        try {
+            setLoading(true);
+            const user = await login(email, password);
+            const roleDisplay = user?.role?.toUpperCase() || 'USER';
+            toast.success(`Welcome back! Logged in as ${roleDisplay}.`);
+
+            if (user.roles?.includes('SELLER')) navigate('/my-shop');
+            else if (user.roles?.includes('ADMIN')) navigate('/admin');
+            else navigate('/');
+        } catch (err) {
+            toast.error(err.message || 'Login failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <div className="auth-container">
-            <div className="auth-overlay" />
+        <div className="login-container">
+            <div className="form-card">
+                <h1 className="form-header">Login to WildEats</h1>
+                {error && <div className="error-message">{error}</div>}
 
-            <nav className="auth-nav">
-                <div className="nav-content">
-                    <div className="nav-logo">
-                        <div className="logo-placeholder" />
-                        <span className="nav-brand">WILDEATS</span>
-                    </div>
-                    <div className="nav-buttons">
-                        <Link to="/login" className="nav-btn active">Login</Link>
-                        <Link to="/register" className="nav-btn">Register</Link>
-                    </div>
-                </div>
-            </nav>
-
-            <div className="auth-content">
-                <div className="auth-card">
-                    <div className="auth-header">
-                        <div className="auth-logo-large" />
-                        <h1 className="auth-title">LOGIN</h1>
+                <form className="styled-form" onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label htmlFor="email">Email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="Enter your email"
+                            required
+                        />
                     </div>
 
-                    <form onSubmit={handleSubmit} className="auth-form">
-                        {error && (
-                            <div className="error-message">
-                                {error}
-                            </div>
-                        )}
+                    <div className="form-group">
+                        <label htmlFor="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            placeholder="Enter your password"
+                            required
+                        />
+                    </div>
 
-                        <div className="form-group">
-                            <label htmlFor="email">Email</label>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                placeholder="Example@email.com"
-                                value={formData.email}
-                                onChange={handleChange}
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
+                    <button className="submit-button" type="submit" disabled={loading}>
+                        {loading ? 'Logging in...' : 'Login'}
+                    </button>
+                </form>
 
-                        <div className="form-group">
-                            <label htmlFor="password">Password</label>
-                            <div className="password-input-wrapper">
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    id="password"
-                                    name="password"
-                                    placeholder="Input your Password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    disabled={isLoading}
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    className="password-toggle"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    aria-label="Toggle password visibility"
-                                    disabled={isLoading}
-                                >
-                                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                                </button>
-                            </div>
-                            <Link to="/forgot-password" className="forgot-password">
-                                Forgot Password?
-                            </Link>
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="btn-primary"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? 'Logging in...' : 'Login'}
-                        </button>
-
-                        <div className="divider">
-                            <span>Or</span>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="btn-social"
-                            onClick={handleGoogleSignIn}
-                            disabled={isLoading}
-                        >
-                            <svg className="google-icon" viewBox="0 0 24 24">
-                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                            </svg>
-                            Sign in with Google
-                        </button>
-                    </form>
+                <div className="form-footer">
+                    Don't have an account? <Link className="styled-link" to="/register">Register here</Link>
                 </div>
             </div>
         </div>
     );
 };
 
-export default Login;
+export default LoginPage;
