@@ -7,6 +7,10 @@ import HomePage from './pages/HomePage.jsx';
 import LoginPage from './pages/Login.jsx';
 import RegisterPage from './pages/Register.jsx';
 import SellerRegister from './pages/SellerRegister.jsx';
+import CreateShop from './pages/CreateShop.jsx';
+import ApplicationPending from './pages/ApplicationPending.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
+import SellerDashboard from './pages/SellerDashboard.jsx';
 
 // Import components
 import Navbar from './components/NavBar.jsx';
@@ -42,6 +46,14 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/shop-register" element={<SellerRegister />} />
 
+              {/* Seller onboarding flow */}
+              <Route path="/create-shop" element={<CreateShop />} />
+              <Route path="/pending" element={<ApplicationPending />} />
+
+              {/* Dashboards */}
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/seller" element={<SellerRegister />} />
+
               {/* Placeholder routes for pages that don't exist yet */}
               <Route path="/shops" element={<PlaceholderPage pageName="Shops" />} />
               <Route path="/shops/:id" element={<PlaceholderPage pageName="Shop Details" />} />
@@ -62,3 +74,4 @@ function App() {
 }
 
 export default App;
+
