@@ -22,7 +22,7 @@ public class CreateShopRequest {
     private String location; // Will be validated as enum
 
     @NotBlank(message = "Contact number is required")
-    @Pattern(regexp = "^[0-9]{10,15}$", message = "Contact number must be 10-15 digits")
+    @Pattern(regexp = "^(09|\\+639)\\d{9}$", message = "Contact number must be a valid Philippine mobile number (e.g., 09171234567 or +639171234567)")
     private String contactNumber;
 
     public CreateShopRequest() {

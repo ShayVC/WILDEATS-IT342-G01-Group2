@@ -1,6 +1,7 @@
 package com.wildeats.onlinecanteen.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class ChangePasswordRequest {
@@ -8,7 +9,8 @@ public class ChangePasswordRequest {
     private String currentPassword;
 
     @NotBlank(message = "New password is required")
-    @Size(min = 6, message = "New password must be at least 6 characters")
+    @Size(min = 8, message = "New password must be at least 8 characters")
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "New password must contain at least one letter and one number")
     private String newPassword;
 
     public ChangePasswordRequest() {

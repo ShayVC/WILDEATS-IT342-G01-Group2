@@ -110,7 +110,14 @@ const FORM_FIELDS = [
     { key: "shopDescr", label: "Shop Description", type: "textarea", required: true, placeholder: "Tell us about your shop..." },
     { key: "shopAddress", label: "Shop Address", type: "text", required: true, placeholder: "e.g., Building A, Ground Floor" },
     { key: "location", label: "Location", type: "select", required: true, options: SHOP_LOCATIONS },
-    { key: "contactNumber", label: "Contact Number", type: "text", required: true, placeholder: "e.g., 09171234567" },
+    {
+        key: "contactNumber",
+        label: "Contact Number",
+        type: "text",
+        required: true,
+        placeholder: "e.g., 09171234567 or +639171234567",
+        maxLength: 13
+    },
 ];
 
 const SellerRegister = () => {
@@ -158,10 +165,15 @@ const SellerRegister = () => {
             newErrors.location = "Location is required";
         }
 
+        // Contact number validation
         if (!form.contactNumber.trim()) {
             newErrors.contactNumber = "Contact number is required";
-        } else if (!/^[0-9]{10,15}$/.test(form.contactNumber.trim())) {
-            newErrors.contactNumber = "Contact number must be 10-15 digits";
+        } else {
+            // Philippine mobile number format: 09XXXXXXXXX or +639XXXXXXXXX
+            const phoneRegex = /^(09|\+639)\d{9}$/;
+            if (!phoneRegex.test(form.contactNumber.trim())) {
+                newErrors.contactNumber = "Contact number must be a valid mobile number (e.g., 09171234567 or +639171234567)";
+            }
         }
 
         setErrors(newErrors);
@@ -344,8 +356,8 @@ const SellerRegister = () => {
                                     onClick={handleSubmit}
                                     disabled={loading}
                                     className={`px-6 py-3 rounded-lg text-white transition ${loading
-                                            ? "bg-gray-400 cursor-not-allowed"
-                                            : "bg-pink-600 hover:bg-pink-700"
+                                        ? "bg-gray-400 cursor-not-allowed"
+                                        : "bg-pink-600 hover:bg-pink-700"
                                         }`}
                                 >
                                     {loading ? "Submitting..." : "Submit Application"}
