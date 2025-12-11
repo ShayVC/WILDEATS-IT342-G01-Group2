@@ -7,10 +7,9 @@ import HomePage from './pages/HomePage.jsx';
 import LoginPage from './pages/Login.jsx';
 import RegisterPage from './pages/Register.jsx';
 import SellerRegister from './pages/SellerRegister.jsx';
-import CreateShop from './pages/CreateShop.jsx';
 import ApplicationPending from './pages/ApplicationPending.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
-import SellerDashboard from './pages/SellerDashboard.jsx';
+import OAuthCallback from './pages/OAuthCallback.jsx';
 
 // Import components
 import Navbar from './components/NavBar.jsx';
@@ -46,8 +45,10 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/shop-register" element={<SellerRegister />} />
 
+              {/* OAuth callback route */}
+              <Route path="/oauth-callback" element={<OAuthCallback />} />
+
               {/* Seller onboarding flow */}
-              <Route path="/create-shop" element={<CreateShop />} />
               <Route path="/pending" element={<ApplicationPending />} />
 
               {/* Dashboards */}
@@ -74,4 +75,3 @@ function App() {
 }
 
 export default App;
-
