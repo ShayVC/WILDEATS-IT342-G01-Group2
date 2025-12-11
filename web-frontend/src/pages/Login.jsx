@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import './Login.css';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:8080';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -26,8 +30,7 @@ const LoginPage = () => {
             setLoading(true);
             const user = await login(formData.email, formData.password);
 
-            const roleDisplay = user?.role?.toUpperCase() || 'USER';
-            toast.success(`Welcome back! Logged in as ${roleDisplay}.`);
+            toast.success(`Welcome!`);
 
             if (user.roles?.includes('SELLER')) navigate('/my-shop');
             else if (user.roles?.includes('ADMIN')) navigate('/admin');
@@ -39,23 +42,9 @@ const LoginPage = () => {
         }
     };
 
-    // Quick login helper (optional)
-    const quickLogin = async (email, password) => {
-        setFormData({ email, password });
-        try {
-            setLoading(true);
-            const user = await login(email, password);
-            const roleDisplay = user?.role?.toUpperCase() || 'USER';
-            toast.success(`Welcome back! Logged in as ${roleDisplay}.`);
-
-            if (user.roles?.includes('SELLER')) navigate('/my-shop');
-            else if (user.roles?.includes('ADMIN')) navigate('/admin');
-            else navigate('/');
-        } catch (err) {
-            toast.error(err.message || 'Login failed. Please try again.');
-        } finally {
-            setLoading(false);
-        }
+    const handleGoogleLogin = () => {
+        // Redirect to backend OAuth2 endpoint
+        window.location.href = `${BACKEND_URL}/oauth2/authorization/google`;
     };
 
     return (
@@ -64,6 +53,7 @@ const LoginPage = () => {
                 <h1 className="form-header">Login to WildEats</h1>
                 {error && <div className="error-message">{error}</div>}
 
+                {/* Traditional Login Form */}
                 <form className="styled-form" onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label htmlFor="email">Email</label>
@@ -99,6 +89,52 @@ const LoginPage = () => {
                 <div className="form-footer">
                     Don't have an account? <Link className="styled-link" to="/register">Register here</Link>
                 </div>
+
+                {/* Divider */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    margin: '1.5rem 0',
+                    color: '#666'
+                }}>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: '#ddd' }} />
+                    <span style={{ padding: '0 1rem', fontSize: '0.875rem' }}>OR</span>
+                    <div style={{ flex: 1, height: '1px', backgroundColor: '#ddd' }} />
+                </div>
+
+                {/* Google Sign-In Button */}
+                <button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    className="google-signin-button"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.75rem',
+                        width: '100%',
+                        padding: '0.875rem',
+                        backgroundColor: 'white',
+                        border: '2px solid #ddd',
+                        borderRadius: '6px',
+                        fontSize: '1rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        marginBottom: '1.5rem'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f8f8f8';
+                        e.currentTarget.style.borderColor = '#800020';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'white';
+                        e.currentTarget.style.borderColor = '#ddd';
+                    }}
+                >
+                    <FcGoogle size={24} />
+                    <span style={{ color: '#333' }}>Continue with Google</span>
+                </button>
             </div>
         </div>
     );

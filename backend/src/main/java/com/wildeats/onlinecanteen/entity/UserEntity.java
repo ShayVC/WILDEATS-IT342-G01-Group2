@@ -73,12 +73,10 @@ public class UserEntity {
 
     public void addRole(RoleEntity role) {
         this.roles.add(role);
-        role.getUsers().add(this);
     }
 
     public void removeRole(RoleEntity role) {
         this.roles.remove(role);
-        role.getUsers().remove(this);
     }
 
     public String getFullName() {

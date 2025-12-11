@@ -22,16 +22,11 @@ import java.util.Arrays;
 /**
  * Security Configuration for WILDEATS Online Canteen System
  * 
- * Architecture Alignment:
- * Layer A (Identity): JWT authentication for USER table
- * Layer B (Commerce): RBAC for SHOP/MENU_ITEM access
- * Layer C (Transactions): Authorization for ORDER management
- * 
- * Security Principles:
- * 1. Stateless JWT tokens (no server-side sessions)
- * 2. Role-based access control (CUSTOMER, SELLER, ADMIN)
- * 3. Rate limiting on auth endpoints
- * 4. CORS configured for frontend origins
+ * Features:
+ * - JWT authentication for traditional login
+ * - OAuth2 authentication for Google Sign-In
+ * - Stateless session management
+ * - Role-based access control (CUSTOMER, SELLER, ADMIN)
  */
 @Configuration
 @EnableWebSecurity
@@ -49,6 +44,12 @@ public class SecurityConfig {
 
         @Autowired
         private CustomAuthenticationEntryPoint authenticationEntryPoint;
+
+        @Autowired
+        private OAuth2SuccessHandler oAuth2SuccessHandler;
+
+        @Autowired
+        private OAuth2FailureHandler oAuth2FailureHandler;
 
         @Bean
         public PasswordEncoder passwordEncoder() {
@@ -78,6 +79,12 @@ public class SecurityConfig {
                                                                 "/api/auth/logout",
                                                                 "/api/auth/verify-token",
                                                                 "/api/auth/refresh-token")
+                                                .permitAll()
+
+                                                // OAuth2 endpoints - public
+                                                .requestMatchers(
+                                                                "/oauth2/**",
+                                                                "/login/oauth2/**")
                                                 .permitAll()
 
                                                 // Test endpoints - public
@@ -140,7 +147,6 @@ public class SecurityConfig {
                                                 // ============================================
                                                 // ADMIN ENDPOINTS (Secured with @PreAuthorize)
                                                 // ============================================
-                                                // These are protected by @PreAuthorize("hasRole('ADMIN')") annotations
 
                                                 .requestMatchers(
                                                                 "/api/users",
@@ -160,12 +166,22 @@ public class SecurityConfig {
 
                                                 // All other requests require authentication
                                                 .anyRequest().authenticated())
+
+                                // OAuth2 Login Configuration
+                                .oauth2Login(oauth -> oauth
+                                                .successHandler(oAuth2SuccessHandler)
+                                                .failureHandler(oAuth2FailureHandler))
+
+                                // Exception Handling
                                 .exceptionHandling(exception -> exception
                                                 .accessDeniedHandler(accessDeniedHandler)
                                                 .authenticationEntryPoint(authenticationEntryPoint))
+
+                                // Stateless Session Management
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                                // Add rate limiting filter BEFORE JWT filter
+
+                                // Add Filters
                                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
