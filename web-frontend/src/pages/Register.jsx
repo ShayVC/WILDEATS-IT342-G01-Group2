@@ -105,8 +105,7 @@ const RegisterPage = () => {
                 formData.confirmPassword
             );
 
-            const roleDisplay = user?.role?.toUpperCase() || 'USER';
-            toast.success(`Registration successful! Welcome as ${roleDisplay}.`);
+            toast.success(`Registration successful.`);
 
             setFormData({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '' });
 

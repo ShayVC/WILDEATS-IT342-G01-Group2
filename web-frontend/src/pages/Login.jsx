@@ -30,8 +30,7 @@ const LoginPage = () => {
             setLoading(true);
             const user = await login(formData.email, formData.password);
 
-            const roleDisplay = user?.role?.toUpperCase() || 'USER';
-            toast.success(`Welcome back! Logged in as ${roleDisplay}.`);
+            toast.success(`Welcome!`);
 
             if (user.roles?.includes('SELLER')) navigate('/my-shop');
             else if (user.roles?.includes('ADMIN')) navigate('/admin');

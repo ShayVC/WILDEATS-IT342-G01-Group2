@@ -48,6 +48,9 @@ public class SecurityConfig {
         @Autowired
         private OAuth2SuccessHandler oAuth2SuccessHandler;
 
+        @Autowired
+        private OAuth2FailureHandler oAuth2FailureHandler;
+
         @Bean
         public PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder();
@@ -167,9 +170,7 @@ public class SecurityConfig {
                                 // OAuth2 Login Configuration
                                 .oauth2Login(oauth -> oauth
                                                 .successHandler(oAuth2SuccessHandler)
-                                // Optional: Add failure handler if needed
-                                // .failureHandler(oAuth2FailureHandler)
-                                )
+                                                .failureHandler(oAuth2FailureHandler))
 
                                 // Exception Handling
                                 .exceptionHandling(exception -> exception
