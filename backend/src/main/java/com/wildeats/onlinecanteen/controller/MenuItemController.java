@@ -16,6 +16,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import com.wildeats.onlinecanteen.dto.MenuItemOptionsDTO;
 import com.wildeats.onlinecanteen.dto.MenuItemResponse;
 import com.wildeats.onlinecanteen.entity.MenuItemEntity;
 import com.wildeats.onlinecanteen.entity.ShopEntity;
@@ -169,6 +170,16 @@ public class MenuItemController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(menuItemDTOs);
+    }
+
+    @GetMapping("/{itemId}/options")
+    public ResponseEntity<?> getMenuItemOptions(@PathVariable Long itemId) {
+        try {
+            MenuItemOptionsDTO options = menuItemService.getMenuItemOptions(itemId);
+            return ResponseEntity.ok(options);
+        } catch (Exception e) {
+            return ResponseEntity.status(404).body(Map.of("message", "Menu item or options not found"));
+        }
     }
 
     /**

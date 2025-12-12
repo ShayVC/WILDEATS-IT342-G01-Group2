@@ -6,9 +6,17 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.wildeats.onlinecanteen.dto.MenuItemOptionsDTO;
+import com.wildeats.onlinecanteen.entity.MenuItemAddonEntity;
 import com.wildeats.onlinecanteen.entity.MenuItemEntity;
+import com.wildeats.onlinecanteen.entity.MenuItemFlavorEntity;
+import com.wildeats.onlinecanteen.entity.MenuItemVariantEntity;
 import com.wildeats.onlinecanteen.entity.ShopEntity;
+import com.wildeats.onlinecanteen.repository.MenuItemAddonRepository;
+import com.wildeats.onlinecanteen.repository.MenuItemFlavorRepository;
 import com.wildeats.onlinecanteen.repository.MenuItemRepository;
+import com.wildeats.onlinecanteen.repository.MenuItemVariantRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +26,15 @@ public class MenuItemService {
 
     @Autowired
     private MenuItemRepository menuItemRepo;
+
+    @Autowired
+    private MenuItemVariantRepository variantRepo;
+
+    @Autowired
+    private MenuItemAddonRepository addonRepo;
+
+    @Autowired
+    private MenuItemFlavorRepository flavorRepo;
 
     @Autowired
     private ShopService shopService;
@@ -88,6 +105,14 @@ public class MenuItemService {
     public List<MenuItemEntity> getMenuItemsByPriceRange(Long shopId, Double maxPrice) {
         logger.info("Fetching menu items in shop {} with price <= {}", shopId, maxPrice);
         return menuItemRepo.findByShopIdAndPriceLessThanEqual(shopId, maxPrice);
+    }
+
+    public MenuItemOptionsDTO getMenuItemOptions(Long itemId) {
+        List<MenuItemVariantEntity> variants = variantRepo.findByMenuItemItemId(itemId);
+        List<MenuItemAddonEntity> addons = addonRepo.findByMenuItemItemId(itemId);
+        List<MenuItemFlavorEntity> flavors = flavorRepo.findByMenuItemItemId(itemId);
+
+        return new MenuItemOptionsDTO(variants, addons, flavors);
     }
 
     /**

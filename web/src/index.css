@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 13%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 13%;
+
+    --primary: 337 82% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 13%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 337 82% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 337 82% 50%;
+
+    --radius: 0.5rem;
+
+    /* Primary Brand Color: Deep Maroon (#800000) */
+    --fp-pink: 0 80% 25%;                 /* Replaces pink, used for Primary buttons, titles, etc. */
+    --fp-pink-light: 0 50% 50%;           /* Lighter Maroon for hover effects/accents */
+    --fp-pink-gradient-start: 0 80% 35%;  /* Maroon for Gradient Start */
+    --fp-pink-gradient-end: 48 80% 45%;   /* Gold for Gradient End */
+    --fp-top-bar: 0 80% 25%;              /* Top bar color */
+
+    /* Secondary Accent Color: Gold/Yellow (#FFD700) */
+    --fp-secondary-accent: 48 100% 50%;   /* Gold used for icons, highlights */
+    --fp-secondary-light: 48 100% 90%;    /* Very light Gold/Yellow tint for backgrounds */
+
+    /* Neutral/Text Colors (Clean grays and white, replacing Foodpanda grays) */
+    --fp-dark: 0 0% 15%;                  /* Near Black for dark text (Foreground) */
+    --fp-gray: 0 0% 40%;                  /* Medium Gray for muted text */
+    --fp-light-gray: 0 0% 96%;            /* Light Gray for backgrounds/muted elements */
+
+    /* DEFAULT RADIX/SHADCN COLORS (Keep neutral for main UI components) */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 337 82% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 337 82% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 337 82% 50%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+@layer utilities {
+  .fp-gradient-banner {
+    background: linear-gradient(135deg, hsl(var(--fp-pink-gradient-start)) 0%, hsl(var(--fp-pink-gradient-end)) 100%);
+  }
+  
+  .fp-shadow-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  .fp-shadow-hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

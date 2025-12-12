@@ -8,211 +8,162 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.wildeats.onlinecanteen.entity.ShopEntity;
-import com.wildeats.onlinecanteen.entity.ShopEntity.Status;
-import com.wildeats.onlinecanteen.entity.UserEntity;
 import com.wildeats.onlinecanteen.repository.ShopRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Service
 public class ShopService {
+
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
 
     @Autowired
     private ShopRepository shopRepo;
 
-    /**
-     * Get all active shops
-     * 
-     * @return List of all active shops
+    /*
+     * ============================
+     * BASIC FETCH OPERATIONS
+     * ============================
      */
+
     public List<ShopEntity> getAllShops() {
-        logger.info("Fetching all shops (all statuses)");
         return shopRepo.findAll();
     }
 
-    /**
-     * Get all operational shops (ACTIVE and open)
-     * 
-     * @return List of operational shops
-     */
     public List<ShopEntity> getAllOperationalShops() {
-        logger.info("Fetching all operational shops");
         return shopRepo.findAllOperational();
     }
 
-    /**
-     * Get all shops with a specific status
-     * 
-     * @param status The status to filter by
-     * @return List of shops with the specified status
-     */
-    public List<ShopEntity> getShopsByStatus(Status status) {
-        logger.info("Fetching shops with status: {}", status);
+    public List<ShopEntity> getShopsByStatus(ShopEntity.Status status) {
         return shopRepo.findByStatus(status);
     }
 
-    /**
-     * Get a shop by its ID
-     * 
-     * @param id The shop ID
-     * @return The shop if found, null otherwise
-     */
     public ShopEntity getShopById(Long id) {
-        logger.info("Fetching shop with ID: {}", id);
         Optional<ShopEntity> shop = shopRepo.findById(id);
         return shop.orElse(null);
     }
 
-    /**
-     * Get all shops owned by a specific user
-     * 
-     * @param userId The ID of the shop owner
-     * @return List of shops owned by the user
-     */
-    public List<ShopEntity> getShopsByOwnerId(Long userId) {
-        logger.info("Fetching shops for owner with ID: {}", userId);
-        return shopRepo.findByOwnerUserId(userId);
+    public List<ShopEntity> getShopsByOwnerId(Long ownerId) {
+        return shopRepo.findByOwnerUserId(ownerId);
     }
 
-    /**
-     * Get all active shops owned by a specific user
-     * 
-     * @param userId The ID of the shop owner
-     * @return List of active shops owned by the user
-     */
-    public List<ShopEntity> getActiveShopsByOwnerId(Long userId) {
-        logger.info("Fetching active shops for owner with ID: {}", userId);
-        return shopRepo.findByOwnerUserIdAndStatus(userId, Status.ACTIVE);
-    }
-
-    /**
-     * Check if a user owns a specific shop
-     * 
-     * @param userId The ID of the user
-     * @param shopId The ID of the shop
-     * @return true if the user owns the shop, false otherwise
-     */
     public boolean isShopOwnedByUser(Long userId, Long shopId) {
         return shopRepo.existsByShopIdAndOwnerId(shopId, userId);
     }
 
-    /**
-     * Create a new shop
-     * 
-     * @param shop  The shop entity to create
-     * @param owner The user who will own the shop
-     * @return The created shop with generated ID
+    /*
+     * ============================
+     * CREATE SHOP
+     * ============================
      */
-    public ShopEntity createShop(ShopEntity shop, UserEntity owner) {
-        logger.info("Creating new shop: {} with owner ID: {}", shop.getShopName(), owner.getUserId());
-        shop.setOwner(owner);
-        shop.setStatus(Status.PENDING); // New shops start as PENDING for admin approval
-        shop.setIsOpen(false); // New shops are closed until approved
+
+    public ShopEntity createShop(ShopEntity shop) {
+        shop.setStatus(ShopEntity.Status.PENDING);
+        shop.setIsOpen(false);
         shop.setCreatedAt(new Date());
         shop.setUpdatedAt(new Date());
         return shopRepo.save(shop);
     }
 
-    /**
-     * Create a new shop (assumes owner is already set)
-     * 
-     * @param shop The shop entity to create
-     * @return The created shop with generated ID
+    /*
+     * ============================
+     * UPDATE SHOP
+     * ============================
      */
-    public ShopEntity createShop(ShopEntity shop) {
-        logger.info("Creating new shop: {}", shop.getShopName());
-        if (shop.getCreatedAt() == null) {
-            shop.setCreatedAt(new Date());
-        }
-        if (shop.getStatus() == null) {
-            shop.setStatus(Status.PENDING);
-        }
-        shop.setUpdatedAt(new Date());
-        return shopRepo.save(shop);
-    }
 
-    /**
-     * Update an existing shop
-     * 
-     * @param shop The shop entity with updated fields
-     * @return The updated shop
-     */
     public ShopEntity updateShop(ShopEntity shop) {
-        logger.info("Updating shop with ID: {}", shop.getShopId());
         shop.setUpdatedAt(new Date());
         return shopRepo.save(shop);
     }
 
-    /**
-     * Approve a shop (set status to ACTIVE)
-     * 
-     * @param shopId The ID of the shop to approve
-     * @return The approved shop
+    /*
+     * ============================
+     * APPROVE SHOP
+     * ============================
      */
+
     public ShopEntity approveShop(Long shopId) {
-        logger.info("Approving shop with ID: {}", shopId);
         ShopEntity shop = getShopById(shopId);
-        if (shop == null) {
+        if (shop == null)
             throw new IllegalArgumentException("Shop not found");
-        }
-        shop.setStatus(Status.ACTIVE);
+
+        shop.setStatus(ShopEntity.Status.ACTIVE);
+        shop.setIsOpen(false);
         shop.setUpdatedAt(new Date());
+
+        logger.info("Shop {} approved", shopId);
+
         return shopRepo.save(shop);
     }
 
-    /**
-     * Suspend a shop
-     * 
-     * @param shopId The ID of the shop to suspend
-     * @return The suspended shop
+    /*
+     * ============================
+     * REJECT SHOP (NEW)
+     * ============================
      */
+
+    public ShopEntity rejectShop(Long shopId) {
+        ShopEntity shop = getShopById(shopId);
+        if (shop == null)
+            throw new IllegalArgumentException("Shop not found");
+
+        shop.setStatus(ShopEntity.Status.REJECTED);
+        shop.setIsOpen(false);
+        shop.setUpdatedAt(new Date());
+
+        logger.info("Shop {} rejected", shopId);
+
+        return shopRepo.save(shop);
+    }
+
+    /*
+     * ============================
+     * SUSPEND SHOP
+     * ============================
+     */
+
     public ShopEntity suspendShop(Long shopId) {
-        logger.info("Suspending shop with ID: {}", shopId);
         ShopEntity shop = getShopById(shopId);
-        if (shop == null) {
+        if (shop == null)
             throw new IllegalArgumentException("Shop not found");
-        }
-        shop.setStatus(Status.SUSPENDED);
+
+        shop.setStatus(ShopEntity.Status.SUSPENDED);
         shop.setIsOpen(false);
         shop.setUpdatedAt(new Date());
         return shopRepo.save(shop);
     }
 
-    /**
-     * Close a shop permanently
-     * 
-     * @param shopId The ID of the shop to close
-     * @return The closed shop
+    /*
+     * ============================
+     * CLOSE SHOP
+     * ============================
      */
+
     public ShopEntity closeShop(Long shopId) {
-        logger.info("Closing shop with ID: {}", shopId);
         ShopEntity shop = getShopById(shopId);
-        if (shop == null) {
+        if (shop == null)
             throw new IllegalArgumentException("Shop not found");
-        }
-        shop.setStatus(Status.CLOSED);
+
+        shop.setStatus(ShopEntity.Status.CLOSED);
         shop.setIsOpen(false);
         shop.setUpdatedAt(new Date());
         return shopRepo.save(shop);
     }
 
-    /**
-     * Toggle shop open/closed status
-     * 
-     * @param shopId The ID of the shop
-     * @return The updated shop
+    /*
+     * ============================
+     * TOGGLE OPEN/CLOSE
+     * ============================
      */
-    public ShopEntity toggleShopOpenStatus(Long shopId) {
-        logger.info("Toggling open status for shop with ID: {}", shopId);
-        ShopEntity shop = getShopById(shopId);
-        if (shop == null) {
-            throw new IllegalArgumentException("Shop not found");
-        }
 
-        // Only ACTIVE shops can be toggled open/closed
-        if (shop.getStatus() != Status.ACTIVE) {
-            throw new IllegalStateException("Only active shops can be opened or closed");
+    public ShopEntity toggleShopOpenStatus(Long shopId) {
+        ShopEntity shop = getShopById(shopId);
+        if (shop == null)
+            throw new IllegalArgumentException("Shop not found");
+
+        if (shop.getStatus() != ShopEntity.Status.ACTIVE) {
+            throw new IllegalStateException("Only active shops can be opened/closed");
         }
 
         shop.setIsOpen(!shop.getIsOpen());
@@ -220,23 +171,30 @@ public class ShopService {
         return shopRepo.save(shop);
     }
 
-    /**
-     * Soft delete a shop by setting status to CLOSED
-     * 
-     * @param id The ID of the shop to delete
+    /*
+     * ============================
+     * SOFT DELETE
+     * ============================
      */
-    public void softDeleteShop(Long id) {
-        logger.info("Soft deleting shop with ID: {}", id);
-        closeShop(id);
+
+    public void softDeleteShop(Long shopId) {
+        ShopEntity shop = getShopById(shopId);
+        if (shop == null)
+            throw new IllegalArgumentException("Shop not found");
+
+        shop.setStatus(ShopEntity.Status.CLOSED);
+        shop.setIsOpen(false);
+        shop.setUpdatedAt(new Date());
+        shopRepo.save(shop);
     }
 
-    /**
-     * Hard delete a shop from the database
-     * 
-     * @param id The ID of the shop to delete
+    /*
+     * ============================
+     * HARD DELETE
+     * ============================
      */
-    public void deleteShop(Long id) {
-        logger.info("Hard deleting shop with ID: {}", id);
-        shopRepo.deleteById(id);
+
+    public void deleteShop(Long shopId) {
+        shopRepo.deleteById(shopId);
     }
 }

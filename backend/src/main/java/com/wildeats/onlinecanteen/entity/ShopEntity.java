@@ -10,10 +10,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class ShopEntity {
 
     public enum Status {
-        PENDING, // Waiting for admin approval
-        ACTIVE, // Approved and operational
-        SUSPENDED, // Temporarily disabled by admin
-        CLOSED // Permanently closed
+        ACTIVE,
+        PENDING,
+        REJECTED,
+        SUSPENDED,
+        CLOSED
     }
 
     // Location enum matching frontend options
