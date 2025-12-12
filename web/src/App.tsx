@@ -24,6 +24,9 @@ import ProfilePage from "@/pages/ProfilePage";
 import ProfileEditPage from "@/pages/ProfileEditPage";
 import OrdersPage from "@/pages/OrdersPage";
 
+// ✅ IMPORT THE OAUTH CALLBACK COMPONENT
+import OAuthCallback from "@/pages/OAuthCallback";
+
 /* ------------------------------------------------------
    NO LOGIN PAGE — This decides what happens on "/"
 ------------------------------------------------------- */
@@ -52,26 +55,28 @@ function App() {
 
             <Routes>
 
-              {/* Root path behaves like your real UI */}
-  {/* Old admin route → redirect permanently */}
-  <Route path="/admin_homepage" element={<Navigate to="/admin" replace />} />
+              {/* ✅ ADD OAUTH CALLBACK ROUTE */}
+              <Route path="/oauth-callback" element={<OAuthCallback />} />
 
-  {/* Root */}
-  <Route path="/" element={<RootRouter />} />
+              {/* Old admin route → redirect permanently */}
+              <Route path="/admin_homepage" element={<Navigate to="/admin" replace />} />
 
-  {/* Admin */}
-  <Route
-    path="/admin"
-    element={
-      <ProtectedRoute allowedRoles={["ADMIN"]}>
-        <AdminLayout />
-      </ProtectedRoute>
-    }
-  >
-    <Route index element={<AdminDashboard />} />
-    <Route path="requests" element={<AdminShopRequests />} />
-    <Route path="shops" element={<AdminShopManagement />} />
-  </Route>
+              {/* Root */}
+              <Route path="/" element={<RootRouter />} />
+
+              {/* Admin */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMIN"]}>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<AdminDashboard />} />
+                <Route path="requests" element={<AdminShopRequests />} />
+                <Route path="shops" element={<AdminShopManagement />} />
+              </Route>
 
               {/* Profile */}
               <Route

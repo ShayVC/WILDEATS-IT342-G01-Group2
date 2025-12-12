@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 
 /**
@@ -27,11 +27,22 @@ const OAuthCallback: React.FC = () => {
             const role = searchParams.get("role");
             const rolesParam = searchParams.get("roles");
 
+            console.log("OAuth callback received:", {
+                token: token ? "✅" : "❌",
+                userId,
+                email,
+                firstName,
+                lastName,
+                role,
+                rolesParam
+            });
+
             // Validate required parameters
             if (!token || !userId || !email) {
+                console.error("Missing required OAuth parameters");
                 toast({
                     title: "Authentication failed",
-                    description: "Missing required information.",
+                    description: "Missing required information from Google sign-in.",
                     variant: "destructive",
                 });
                 navigate("/");
@@ -39,7 +50,7 @@ const OAuthCallback: React.FC = () => {
             }
 
             // Parse roles array
-            const roles = rolesParam ? rolesParam.split(",") : [role];
+            const roles = rolesParam ? rolesParam.split(",") : [role || "CUSTOMER"];
 
             // Create user object
             const user = {
@@ -50,6 +61,8 @@ const OAuthCallback: React.FC = () => {
                 roles,
             };
 
+            console.log("Logging in user:", user);
+
             // Update auth context
             login(token, user);
 
@@ -57,15 +70,18 @@ const OAuthCallback: React.FC = () => {
             const roleDisplay = role?.toUpperCase() || "USER";
             toast({
                 title: "Login successful",
-                description: `Welcome! Logged in as ${roleDisplay} via Google.`,
+                description: `Welcome ${firstName}! Logged in via Google as ${roleDisplay}.`,
             });
 
             // Redirect based on role
             if (roles.includes("SELLER")) {
+                console.log("Redirecting to seller dashboard");
                 navigate("/seller_dashboard");
             } else if (roles.includes("ADMIN")) {
+                console.log("Redirecting to admin panel");
                 navigate("/admin");
             } else {
+                console.log("Redirecting to home");
                 navigate("/");
             }
         };
@@ -77,7 +93,7 @@ const OAuthCallback: React.FC = () => {
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <div className="text-center space-y-4">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-fp-pink"></div>
-                <p className="text-gray-600">Completing sign in with Google...</p>
+                <p className="text-gray-600 font-medium">Completing sign in with Google...</p>
                 <p className="text-sm text-gray-500">
                     Please wait while we set up your account...
                 </p>
