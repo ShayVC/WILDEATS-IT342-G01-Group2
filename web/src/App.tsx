@@ -23,8 +23,7 @@ import ShopDetailsPage from "@/pages/ShopDetailsPage";
 import ProfilePage from "@/pages/ProfilePage";
 import ProfileEditPage from "@/pages/ProfileEditPage";
 import OrdersPage from "@/pages/OrdersPage";
-
-// ✅ IMPORT THE OAUTH CALLBACK COMPONENT
+import SellerApplicationPage from "./pages/SellerApplicationPage";
 import OAuthCallback from "@/pages/OAuthCallback";
 
 /* ------------------------------------------------------
@@ -92,6 +91,15 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={["CUSTOMER", "SELLER", "ADMIN"]}>
                     <ProfileEditPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/seller-application"
+                element={
+                  <ProtectedRoute allowedRoles={["CUSTOMER", "SELLER"]}>
+                    <SellerApplicationPage />
                   </ProtectedRoute>
                 }
               />

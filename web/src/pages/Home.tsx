@@ -189,7 +189,7 @@ const Home: React.FC = () => {
       setAuthModalOpen(true);
       return;
     }
-    if (shopStatus === "NONE") navigate("/seller-register");
+    if (shopStatus === "NONE") navigate("/seller-application");
     if (shopStatus === "ACTIVE" && user.roles?.includes("SELLER"))
       navigate("/seller_dashboard");
   };
