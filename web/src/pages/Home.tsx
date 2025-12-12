@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { FcGoogle } from "react-icons/fc";
 
 import {
   Search,
@@ -12,6 +13,9 @@ import {
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:8080";
 
 // ==============================
 // API + Types
@@ -92,6 +96,11 @@ const restaurants = [
     discount: "Free Rice Meal",
   },
 ];
+
+const handleGoogleLogin = () => {
+  // Redirect to backend OAuth2 endpoint
+  window.location.href = `${BACKEND_URL}/oauth2/authorization/google`;
+};
 
 // ==============================
 // HOME COMPONENT
@@ -276,15 +285,15 @@ const Home: React.FC = () => {
       passwordStrength === "strong"
         ? "Strong password"
         : passwordStrength === "medium"
-        ? "Medium strength"
-        : "Weak password";
+          ? "Medium strength"
+          : "Weak password";
 
     const color =
       passwordStrength === "strong"
         ? "bg-emerald-100 text-emerald-700"
         : passwordStrength === "medium"
-        ? "bg-amber-100 text-amber-700"
-        : "bg-red-100 text-red-700";
+          ? "bg-amber-100 text-amber-700"
+          : "bg-red-100 text-red-700";
 
     return (
       <p
@@ -682,7 +691,7 @@ const Home: React.FC = () => {
 
             {/* LOGIN VIEW */}
             {authView === "login" && (
-              <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-4">
                 <button
                   onClick={() => setAuthView("main")}
                   type="button"
@@ -698,46 +707,66 @@ const Home: React.FC = () => {
                   Enter your email and password.
                 </p>
 
-                <div>
-                  <label className="text-xs font-medium">Email</label>
-                  <input
-                    type="email"
-                    value={loginData.email}
-                    onChange={(e) =>
-                      setLoginData({ ...loginData, email: e.target.value })
-                    }
-                    className="border w-full p-2 rounded-lg text-sm"
-                    placeholder="you@example.com"
-                    required
-                  />
+                {/* Traditional Login Form */}
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-medium">Email</label>
+                    <input
+                      type="email"
+                      value={loginData.email}
+                      onChange={(e) =>
+                        setLoginData({ ...loginData, email: e.target.value })
+                      }
+                      className="border w-full p-2 rounded-lg text-sm"
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium">Password</label>
+                    <input
+                      type="password"
+                      value={loginData.password}
+                      onChange={(e) =>
+                        setLoginData({ ...loginData, password: e.target.value })
+                      }
+                      className="border w-full p-2 rounded-lg text-sm"
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-fp-pink text-white py-3 rounded-lg text-sm font-semibold hover:bg-fp-pink/90"
+                  >
+                    Log in
+                  </button>
+                </form>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-xs text-gray-500">OR</span>
+                  <div className="flex-1 h-px bg-gray-200" />
                 </div>
 
-                <div>
-                  <label className="text-xs font-medium">Password</label>
-                  <input
-                    type="password"
-                    value={loginData.password}
-                    onChange={(e) =>
-                      setLoginData({ ...loginData, password: e.target.value })
-                    }
-                    className="border w-full p-2 rounded-lg text-sm"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-
+                {/* Google Sign-In Button */}
                 <button
-                  type="submit"
-                  className="w-full bg-fp-pink text-white py-3 rounded-lg text-sm font-semibold hover:bg-fp-pink/90"
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  className="w-full flex items-center justify-center gap-3 py-3 rounded-lg border-2 border-gray-200 hover:border-fp-pink hover:bg-gray-50 transition-all text-sm font-medium"
                 >
-                  Log in
+                  <FcGoogle size={20} />
+                  <span>Continue with Google</span>
                 </button>
-              </form>
+              </div>
             )}
 
             {/* SIGNUP VIEW */}
             {authView === "signup" && (
-              <form onSubmit={handleSignup} className="space-y-4">
+              <div className="space-y-4">
                 <button
                   onClick={() => setAuthView("main")}
                   type="button"
@@ -753,107 +782,127 @@ const Home: React.FC = () => {
                   Create your WildEats account.
                 </p>
 
-                <div className="grid grid-cols-2 gap-3">
+                {/* Traditional Signup Form */}
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium">First name</label>
+                      <input
+                        type="text"
+                        placeholder="Juan"
+                        value={signupForm.firstName}
+                        onChange={(e) =>
+                          setSignupForm({
+                            ...signupForm,
+                            firstName: e.target.value,
+                          })
+                        }
+                        className="border p-2 rounded-lg text-sm w-full"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium">Last name</label>
+                      <input
+                        type="text"
+                        placeholder="Dela Cruz"
+                        value={signupForm.lastName}
+                        onChange={(e) =>
+                          setSignupForm({
+                            ...signupForm,
+                            lastName: e.target.value,
+                          })
+                        }
+                        className="border p-2 rounded-lg text-sm w-full"
+                        required
+                      />
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="text-xs font-medium">First name</label>
+                    <label className="text-xs font-medium">Email</label>
                     <input
-                      type="text"
-                      placeholder="Juan"
-                      value={signupForm.firstName}
+                      type="email"
+                      placeholder="you@example.com"
+                      value={signupForm.email}
                       onChange={(e) =>
                         setSignupForm({
                           ...signupForm,
-                          firstName: e.target.value,
+                          email: e.target.value,
                         })
                       }
-                      className="border p-2 rounded-lg text-sm"
+                      className="border p-2 rounded-lg w-full text-sm"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium">Last name</label>
+                    <label className="text-xs font-medium">Password</label>
                     <input
-                      type="text"
-                      placeholder="Dela Cruz"
-                      value={signupForm.lastName}
+                      type="password"
+                      placeholder="At least 8 characters"
+                      value={signupForm.password}
+                      onChange={(e) => {
+                        setSignupForm({
+                          ...signupForm,
+                          password: e.target.value,
+                        });
+                        updatePasswordStrength(e.target.value);
+                      }}
+                      className="border p-2 rounded-lg w-full text-sm"
+                      required
+                    />
+                    {renderPasswordStrength()}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium">Confirm password</label>
+                    <input
+                      type="password"
+                      placeholder="Repeat your password"
+                      value={signupForm.confirmPassword}
                       onChange={(e) =>
                         setSignupForm({
                           ...signupForm,
-                          lastName: e.target.value,
+                          confirmPassword: e.target.value,
                         })
                       }
-                      className="border p-2 rounded-lg text-sm"
+                      className="border p-2 rounded-lg w-full text-sm"
                       required
                     />
                   </div>
+
+                  {signupError && (
+                    <p className="text-red-500 text-xs">{signupError}</p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-fp-pink text-white py-3 rounded-lg text-sm font-semibold hover:bg-fp-pink/90 disabled:opacity-60"
+                  >
+                    {isSubmitting ? "Creating account..." : "Create account"}
+                  </button>
+                </form>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-xs text-gray-500">OR</span>
+                  <div className="flex-1 h-px bg-gray-200" />
                 </div>
 
-                <div>
-                  <label className="text-xs font-medium">Email</label>
-                  <input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={signupForm.email}
-                    onChange={(e) =>
-                      setSignupForm({
-                        ...signupForm,
-                        email: e.target.value,
-                      })
-                    }
-                    className="border p-2 rounded-lg w-full text-sm"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium">Password</label>
-                  <input
-                    type="password"
-                    placeholder="At least 8 characters"
-                    value={signupForm.password}
-                    onChange={(e) => {
-                      setSignupForm({
-                        ...signupForm,
-                        password: e.target.value,
-                      });
-                      updatePasswordStrength(e.target.value);
-                    }}
-                    className="border p-2 rounded-lg w-full text-sm"
-                    required
-                  />
-                  {renderPasswordStrength()}
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium">Confirm password</label>
-                  <input
-                    type="password"
-                    placeholder="Repeat your password"
-                    value={signupForm.confirmPassword}
-                    onChange={(e) =>
-                      setSignupForm({
-                        ...signupForm,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    className="border p-2 rounded-lg w-full text-sm"
-                    required
-                  />
-                </div>
-
-                {signupError && (
-                  <p className="text-red-500 text-xs">{signupError}</p>
-                )}
-
+                {/* Google Sign-In Button */}
                 <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-fp-pink text-white py-3 rounded-lg text-sm font-semibold hover:bg-fp-pink/90 disabled:opacity-60"
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  className="w-full flex items-center justify-center gap-3 py-3 rounded-lg border-2 border-gray-200 hover:border-fp-pink hover:bg-gray-50 transition-all text-sm font-medium"
                 >
-                  {isSubmitting ? "Creating account..." : "Create account"}
+                  <FcGoogle size={20} />
+                  <span>Sign up with Google</span>
                 </button>
-              </form>
+              </div>
             )}
 
           </div>
